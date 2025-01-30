@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "bundleapi_test",
+  "version": "${version}",
+  "name": "Test Mod",
+  "description": "Test Mod for Bundle API",
+  "authors": [],
+  "contact": {},
+  "license": "None",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.github.theredbrain.bundleapi_test.BundleAPITest"
+    ],
+    "client": [
+      "com.github.theredbrain.bundleapi_test.BundleAPITestClient"
+    ]
+  },
+  "mixins": [],
+  "depends": {}
+}
