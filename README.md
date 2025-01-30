@@ -1,9 +1,40 @@
-# Fabric Example Mod
+# Bundle API
 
-## Setup
+An API for mods that allows easy addition of bundles with custom sizes and filtered content.
 
-For setup instructions please see the [fabric documentation page](https://docs.fabricmc.net/develop/getting-started/setting-up-a-development-environment) that relates to the IDE that you are using.
+## Installation
 
-## License
+Add this mod as dependency for your project.
 
-This template is available under the CC0 license. Feel free to learn from it and incorporate it in your own projects.
+build.gradle
+
+```groovy
+repositories {
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content {
+            includeGroup 'maven.modrinth'
+        }
+    }
+}
+
+dependencies {
+    modImplementation "maven.modrinth:bundle-api:${project.bundle_api_version}"
+}
+```
+
+gradle.properties
+
+```
+# replace with latest version
+bundle_api_version=1.0.0
+```
+
+## Usage
+
+- Create your item instance by calling the constructor for the CustomBundleItem.
+- Register your item instance.
+- Add model and texture files (taking inspiration from the vanilla bundle is recommended)
+
+A simple example can be found on [GitHub](https://github.com/TheRedBrain/bundle-api/blob/1.21.1/src/testmod/java/com/github/theredbrain/bundleapi_test/BundleAPITest.java).
