@@ -39,16 +39,16 @@ public class BundleAPITest implements ModInitializer {
 
 	public static final TagKey<Item> TEST_BUNDLE_TAG = TagKey.of(RegistryKeys.ITEM, identifier("test_bundle_tag"));
 
-	public static Item TEST_ITEM = registerItem("test_item", new CustomBundleItem(new Item.Settings()
+	public static Item TEST_BUNDLE = registerItem("test_bundle", new CustomBundleItem(new Item.Settings()
 					.maxCount(1)
-					.component(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE, CustomBundleContentsComponent.builder().size_multiplier(2).build())
+					.component(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.builder().size_multiplier(2).build())
 			),
 			ItemGroups.OPERATOR
 	);
 
 	public static Item TEST_QUIVER = registerItem("test_quiver", new CustomBundleItem(TEST_BUNDLE_TAG, new Item.Settings()
 					.maxCount(1)
-					.component(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE, CustomBundleContentsComponent.builder().size_multiplier(2).build())
+					.component(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.builder().size_multiplier(2).build())
 			),
 			ItemGroups.OPERATOR
 	);

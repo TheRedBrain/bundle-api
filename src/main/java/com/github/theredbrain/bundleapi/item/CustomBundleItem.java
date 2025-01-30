@@ -48,7 +48,7 @@ public class CustomBundleItem extends Item {
 	}
 
 	public static float getAmountFilled(ItemStack stack) {
-		CustomBundleContentsComponent customBundleContentsComponent = stack.getOrDefault(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE, CustomBundleContentsComponent.DEFAULT);
+		CustomBundleContentsComponent customBundleContentsComponent = stack.getOrDefault(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.DEFAULT);
 		return customBundleContentsComponent.getOccupancy().floatValue();
 	}
 
@@ -57,7 +57,7 @@ public class CustomBundleItem extends Item {
 		if (clickType != ClickType.RIGHT) {
 			return false;
 		} else {
-			CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE);
+			CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 			if (customBundleContentsComponent == null) {
 				return false;
 			} else {
@@ -77,7 +77,7 @@ public class CustomBundleItem extends Item {
 					}
 				}
 
-				stack.set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE, builder.build());
+				stack.set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, builder.build());
 				return true;
 			}
 		}
@@ -87,7 +87,7 @@ public class CustomBundleItem extends Item {
 	public boolean onClicked(ItemStack stack, ItemStack otherStack, Slot slot, ClickType clickType, PlayerEntity player, StackReference cursorStackReference) {
 		if (clickType == ClickType.RIGHT && slot.canTakePartial(player)) {
 			BundleAPI.LOGGER.info("clickType == ClickType.RIGHT && slot.canTakePartial(player)");
-			CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE);
+			CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 			if (customBundleContentsComponent == null) {
 				BundleAPI.LOGGER.info("customBundleContentsComponent == null");
 				return false;
@@ -107,7 +107,7 @@ public class CustomBundleItem extends Item {
 					}
 				}
 
-				stack.set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE, builder.build());
+				stack.set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, builder.build());
 				return true;
 			}
 		} else {
@@ -129,13 +129,13 @@ public class CustomBundleItem extends Item {
 
 	@Override
 	public boolean isItemBarVisible(ItemStack stack) {
-		CustomBundleContentsComponent customBundleContentsComponent = stack.getOrDefault(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE, CustomBundleContentsComponent.DEFAULT);
+		CustomBundleContentsComponent customBundleContentsComponent = stack.getOrDefault(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.DEFAULT);
 		return customBundleContentsComponent.getOccupancy().compareTo(Fraction.ZERO) > 0;
 	}
 
 	@Override
 	public int getItemBarStep(ItemStack stack) {
-		CustomBundleContentsComponent customBundleContentsComponent = stack.getOrDefault(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE, CustomBundleContentsComponent.DEFAULT);
+		CustomBundleContentsComponent customBundleContentsComponent = stack.getOrDefault(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.DEFAULT);
 		return Math.min(1 + MathHelper.multiplyFraction(customBundleContentsComponent.getOccupancy(), 12), 13);
 	}
 
@@ -145,9 +145,9 @@ public class CustomBundleItem extends Item {
 	}
 
 	private static boolean dropAllBundledItems(ItemStack stack, PlayerEntity player) {
-		CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE);
+		CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 		if (customBundleContentsComponent != null && !customBundleContentsComponent.isEmpty()) {
-			stack.set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE, CustomBundleContentsComponent.DEFAULT);
+			stack.set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.DEFAULT);
 			if (player instanceof ServerPlayerEntity) {
 				customBundleContentsComponent.iterateCopy().forEach(stackx -> player.dropItem(stackx, true));
 			}
@@ -161,13 +161,13 @@ public class CustomBundleItem extends Item {
 	@Override
 	public Optional<TooltipData> getTooltipData(ItemStack stack) {
 		return !stack.contains(DataComponentTypes.HIDE_TOOLTIP) && !stack.contains(DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP)
-			? Optional.ofNullable(stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE)).map(CustomBundleTooltipData::new)
+			? Optional.ofNullable(stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT)).map(CustomBundleTooltipData::new)
 			: Optional.empty();
 	}
 
 	@Override
 	public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType type) {
-		CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE);
+		CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 		if (customBundleContentsComponent != null) {
 			int bundleMaxSize = customBundleContentsComponent.sizeMultiplier() * 64;
 			int i = MathHelper.multiplyFraction(customBundleContentsComponent.getOccupancy(), bundleMaxSize);
@@ -177,9 +177,9 @@ public class CustomBundleItem extends Item {
 
 	@Override
 	public void onItemEntityDestroyed(ItemEntity entity) {
-		CustomBundleContentsComponent customBundleContentsComponent = entity.getStack().get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE);
+		CustomBundleContentsComponent customBundleContentsComponent = entity.getStack().get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 		if (customBundleContentsComponent != null) {
-			entity.getStack().set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE, CustomBundleContentsComponent.DEFAULT);
+			entity.getStack().set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.DEFAULT);
 			ItemUsage.spawnItemContents(entity, customBundleContentsComponent.iterateCopy());
 		}
 	}

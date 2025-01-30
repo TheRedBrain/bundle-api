@@ -21,7 +21,7 @@ public record CustomBundleContentsPredicate(
 
 	@Override
 	public ComponentType<CustomBundleContentsComponent> getComponentType() {
-		return BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE;
+		return BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT;
 	}
 
 	public boolean test(ItemStack itemStack, CustomBundleContentsComponent customBundleContentsComponent) {

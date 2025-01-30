@@ -84,7 +84,7 @@ public final class CustomBundleContentsComponent implements TooltipData {
 	}
 
 	static Fraction getOccupancy(ItemStack stack, int size_multiplier) {
-		CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE);
+		CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 		if (customBundleContentsComponent != null) {
 			return NESTED_BUNDLE_OCCUPANCY.add(customBundleContentsComponent.getOccupancy());
 		} else {

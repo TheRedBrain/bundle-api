@@ -15,8 +15,8 @@ public class BundleAPI implements ModInitializer {
 	public static final String MOD_ID = "bundleapi";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-	public static ComponentType<CustomBundleContentsComponent> CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE;
-	public static ItemSubPredicate.Type<CustomBundleContentsPredicate> CUSTOM_BUNDLE_CONTENTS;
+	public static ComponentType<CustomBundleContentsComponent> CUSTOM_BUNDLE_CONTENTS_COMPONENT;
+	public static ItemSubPredicate.Type<CustomBundleContentsPredicate> CUSTOM_BUNDLE_CONTENTS_ITEM_SUB_PREDICATE;
 
 	@Override
 	public void onInitialize() {
@@ -24,12 +24,12 @@ public class BundleAPI implements ModInitializer {
 	}
 
 	static {
-		CUSTOM_BUNDLE_CONTENTS_COMPONENT_TYPE = Registry.register(
+		CUSTOM_BUNDLE_CONTENTS_COMPONENT = Registry.register(
 				Registries.DATA_COMPONENT_TYPE,
 				identifier("custom_bundle_contents"),
 				ComponentType.<CustomBundleContentsComponent>builder().codec(CustomBundleContentsComponent.CODEC).packetCodec(CustomBundleContentsComponent.PACKET_CODEC).build()
 		);
-		CUSTOM_BUNDLE_CONTENTS = Registry.register(
+		CUSTOM_BUNDLE_CONTENTS_ITEM_SUB_PREDICATE = Registry.register(
 				Registries.ITEM_SUB_PREDICATE_TYPE,
 				"custom_bundle_contents",
 				new ItemSubPredicate.Type<>(CustomBundleContentsPredicate.CODEC)
