@@ -1,3 +1,9 @@
+# 1.0.1
+
+- fixed a crash
+- removed debug log spam
+- lowered fabric loader dependency to 0.16.5
+
 # 1.0.0
 
 First release.
