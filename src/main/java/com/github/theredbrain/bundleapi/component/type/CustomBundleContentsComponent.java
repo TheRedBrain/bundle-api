@@ -167,7 +167,7 @@ public final class CustomBundleContentsComponent implements TooltipData {
 				return -1;
 			} else {
 				for (int i = 0; i < this.content.stacks.size(); i++) {
-					if (ItemStack.areItemsAndComponentsEqual((ItemStack) this.content.stacks.get(i), stack)) {
+					if (ItemStack.areItemsAndComponentsEqual((ItemStack) this.content.stacks.get(i), stack) && this.content.stacks.get(i).getCount() < this.content.stacks.get(i).getMaxCount()) {
 						return i;
 					}
 				}
@@ -191,9 +191,21 @@ public final class CustomBundleContentsComponent implements TooltipData {
 					int j = this.addInternal(stack);
 					if (j != -1) {
 						ItemStack itemStack = (ItemStack) this.content.stacks.remove(j);
-						ItemStack itemStack2 = itemStack.copyWithCount(itemStack.getCount() + i);
-						stack.decrement(i);
-						this.content.stacks.add(0, itemStack2);
+						int maxCount = itemStack.getMaxCount();
+						int count = itemStack.getCount();
+						int countDiff = maxCount - count;
+						if (i <= countDiff) {
+							ItemStack itemStack2 = itemStack.copyWithCount(itemStack.getCount() + i);
+							stack.decrement(i);
+							this.content.stacks.add(0, itemStack2);
+						} else {
+							ItemStack itemStack2 = itemStack.copyWithCount(itemStack.getCount() + countDiff);
+							this.content.stacks.add(0, itemStack2);
+
+							ItemStack itemStack3 = stack.copyWithCount(i - countDiff);
+							this.content.stacks.add(0, itemStack3);
+							stack.decrement(i);
+						}
 					} else {
 						this.content.stacks.add(0, stack.split(i));
 					}
