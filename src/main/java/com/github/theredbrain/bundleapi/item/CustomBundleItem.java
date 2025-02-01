@@ -86,15 +86,12 @@ public class CustomBundleItem extends Item {
 	@Override
 	public boolean onClicked(ItemStack stack, ItemStack otherStack, Slot slot, ClickType clickType, PlayerEntity player, StackReference cursorStackReference) {
 		if (clickType == ClickType.RIGHT && slot.canTakePartial(player)) {
-			BundleAPI.LOGGER.info("clickType == ClickType.RIGHT && slot.canTakePartial(player)");
 			CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 			if (customBundleContentsComponent == null) {
-				BundleAPI.LOGGER.info("customBundleContentsComponent == null");
 				return false;
 			} else {
 				CustomBundleContentsComponent.Builder builder = new CustomBundleContentsComponent.Builder(customBundleContentsComponent);
 				if (otherStack.isEmpty()) {
-					BundleAPI.LOGGER.info("otherStack.isEmpty()");
 					ItemStack itemStack = builder.removeFirst();
 					if (itemStack != null) {
 						this.playRemoveOneSound(player);
