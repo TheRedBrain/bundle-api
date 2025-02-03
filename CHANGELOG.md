@@ -1,3 +1,7 @@
+# 1.0.2
+
+- internal refactor which fixes all known issues
+
 # 1.0.1
 
 - fixed a crash

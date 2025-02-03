@@ -48,7 +48,7 @@ public class BundleAPITest implements ModInitializer {
 
 	public static Item TEST_QUIVER = registerItem("test_quiver", new CustomBundleItem(TEST_BUNDLE_TAG, new Item.Settings()
 					.maxCount(1)
-					.component(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.builder().size_multiplier(2).build())
+					.component(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.builder().size_multiplier(3).build())
 			),
 			ItemGroups.OPERATOR
 	);
