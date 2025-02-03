@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-public final class CustomBundleContentsComponent implements TooltipData {
+public record CustomBundleContentsComponent(Content content, Fraction occupancy/*, Optional<RegistryEntryList<Item>> tag  TODO add tag key in 1.21.4*/, int size_multiplier) implements TooltipData {
 	public static final CustomBundleContentsComponent DEFAULT = new CustomBundleContentsComponent(List.of()/*, Optional.empty()*/, 1);
 	public static final Codec<CustomBundleContentsComponent> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
@@ -40,13 +40,8 @@ public final class CustomBundleContentsComponent implements TooltipData {
 			CustomBundleContentsComponent::new
 	);
 	private static final Fraction NESTED_BUNDLE_OCCUPANCY = Fraction.getFraction(1, 16);
-	private static final int ADD_TO_NEW_SLOT = -1;
-	final Content content;
-	final Fraction occupancy;
-	//	final Optional<RegistryEntryList<Item>> tag; // TODO add tag key in 1.21.4
-	final int size_multiplier;
 
-	CustomBundleContentsComponent(Content content, Fraction occupancy/*, Optional<RegistryEntryList<Item>> tag*/, int size_multiplier) {
+	public CustomBundleContentsComponent(Content content, Fraction occupancy/*, Optional<RegistryEntryList<Item>> tag*/, int size_multiplier) {
 		this.content = content;
 		this.occupancy = occupancy;
 //		this.tag = tag;
@@ -66,11 +61,11 @@ public final class CustomBundleContentsComponent implements TooltipData {
 	}
 
 	public CustomBundleContentsComponent(/*Optional<RegistryEntryList<Item>> tag, */int size_multiplier) {
-		this(List.of(), calculateOccupancy(List.of(), size_multiplier)/*, tag*/, size_multiplier);
+		this(Content.DEFAULT/*, calculateOccupancy(List.of(), size_multiplier)*//*, tag*/, size_multiplier);
 	}
 
-	public static Builder builder() {
-		return new Builder(DEFAULT);
+	public static CustomBundleContentsComponent.Builder builder() {
+		return new CustomBundleContentsComponent.Builder(DEFAULT);
 	}
 
 	private static Fraction calculateOccupancy(List<ItemStack> stacks, int size_multiplier) {
@@ -125,32 +120,14 @@ public final class CustomBundleContentsComponent implements TooltipData {
 		return this.content.stacks.isEmpty();
 	}
 
-	public boolean equals(Object o) {
-		if (this == o) {
-			return true;
-		} else {
-			return !(o instanceof CustomBundleContentsComponent bundleContentsComponent)
-					? false
-					: this.occupancy.equals(bundleContentsComponent.occupancy) && ItemStack.stacksEqual(this.content.stacks, bundleContentsComponent.content.stacks);
-		}
-	}
-
-	public int hashCode() {
-		return ItemStack.listHashCode(this.content.stacks);
-	}
-
-	public String toString() {
-		return "BundleContents" + this.content.stacks;
-	}
-
 	public static class Builder {
-		private Content content;
+		private CustomBundleContentsComponent.Content content;
 		private Fraction occupancy;
 		//		private Optional<RegistryEntryList<Item>> tag;
 		private int size_multiplier;
 
 		public Builder(CustomBundleContentsComponent base) {
-			this.content = new Content(base.content.stacks);
+			this.content = new CustomBundleContentsComponent.Content(base.content.stacks);
 			this.occupancy = base.occupancy;
 //			this.tag = base.tag;
 			this.size_multiplier = base.size_multiplier;
@@ -238,7 +215,7 @@ public final class CustomBundleContentsComponent implements TooltipData {
 			return this.occupancy;
 		}
 
-		public Builder size_multiplier(int size_multiplier) {
+		public CustomBundleContentsComponent.Builder size_multiplier(int size_multiplier) {
 			this.size_multiplier = size_multiplier;
 			return this;
 		}
@@ -254,15 +231,14 @@ public final class CustomBundleContentsComponent implements TooltipData {
 		}
 	}
 
-	public static class Content {
-		final List<ItemStack> stacks;
+	public record Content(List<ItemStack> stacks) {
 		public static final Content DEFAULT = new Content(List.of());
 		public static final Codec<Content> CODEC = ItemStack.CODEC.listOf().xmap(Content::new, component -> component.stacks);
 		public static final PacketCodec<RegistryByteBuf, Content> PACKET_CODEC = ItemStack.PACKET_CODEC
 				.collect(PacketCodecs.toList())
 				.xmap(Content::new, content -> content.stacks);
 
-		Content(List<ItemStack> stacks) {
+		public Content(List<ItemStack> stacks) {
 			this.stacks = new ArrayList<ItemStack>(stacks);
 		}
 	}
