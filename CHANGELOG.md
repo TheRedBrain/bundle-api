@@ -1,3 +1,7 @@
+# 1.0.3
+
+- now works with Minecraft 1.21
+
 # 1.0.2
 
 - internal refactor which fixes all known issues
