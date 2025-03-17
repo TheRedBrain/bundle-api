@@ -144,7 +144,7 @@ public class CustomBundleItem extends Item {
 	private static boolean dropAllBundledItems(ItemStack stack, PlayerEntity player) {
 		CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 		if (customBundleContentsComponent != null && !customBundleContentsComponent.isEmpty()) {
-			stack.set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.DEFAULT);
+			stack.set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, new CustomBundleContentsComponent.Builder(customBundleContentsComponent).clear().build());
 			if (player instanceof ServerPlayerEntity) {
 				customBundleContentsComponent.iterateCopy().forEach(stackx -> player.dropItem(stackx, true));
 			}
@@ -176,7 +176,7 @@ public class CustomBundleItem extends Item {
 	public void onItemEntityDestroyed(ItemEntity entity) {
 		CustomBundleContentsComponent customBundleContentsComponent = entity.getStack().get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 		if (customBundleContentsComponent != null) {
-			entity.getStack().set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.DEFAULT);
+			entity.getStack().set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, new CustomBundleContentsComponent.Builder(customBundleContentsComponent).clear().build());
 			ItemUsage.spawnItemContents(entity, customBundleContentsComponent.iterateCopy());
 		}
 	}

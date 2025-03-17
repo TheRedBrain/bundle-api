@@ -1,3 +1,7 @@
+# 1.0.4
+
+- fixed an issue where the bundle size would be set to 1 after some interactions
+
 # 1.0.3
 
 - now works with Minecraft 1.21
