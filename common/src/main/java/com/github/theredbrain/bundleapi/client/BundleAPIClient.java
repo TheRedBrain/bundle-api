@@ -1,7 +1,7 @@
 package com.github.theredbrain.bundleapi.client;
 
 import com.github.theredbrain.bundleapi.item.CustomBundleItem;
-import net.minecraft.client.item.ModelPredicateProviderRegistry;
+import com.github.theredbrain.bundleapi.mixin.client.ModelPredicateProviderRegistryInvoker;
 import net.minecraft.item.Item;
 import net.minecraft.util.Identifier;
 
@@ -11,6 +11,6 @@ public class BundleAPIClient {
 	}
 
 	public static void registerModelPredicateProviders(Item item) {
-		ModelPredicateProviderRegistry.register(item, Identifier.of("filled"), (stack, world, entity, seed) -> CustomBundleItem.getAmountFilled(stack));
+		ModelPredicateProviderRegistryInvoker.invokeRegister(item, Identifier.of("filled"), (stack, world, entity, seed) -> CustomBundleItem.getAmountFilled(stack));
 	}
 }
