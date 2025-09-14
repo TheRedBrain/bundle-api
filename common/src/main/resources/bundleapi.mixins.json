@@ -6,6 +6,10 @@
     "client.MinecraftClientMixin",
     "client.gui.tooltip.TooltipComponentMixin"
   ],
+  "mixins": [
+    "registry.DataComponentTypesMixin",
+    "registry.ItemSubPredicateTypesMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }
