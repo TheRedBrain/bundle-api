@@ -1,17 +1,17 @@
 modLoader = "javafml"
 loaderVersion = "[4,)"
 #issueTrackerURL = ""
-license = "Insert License Here"
+license = "MIT"
 
 [[mods]]
 modId = "bundleapi"
 version = "${version}"
 displayName = "BundleAPI"
-authors = "Me!"
+authors = "TheRedBrain"
 description = '''
-This is an example description! Tell everyone what your mod is about!
+An API for mods that allows easy addition of bundles with custom sizes and filtered content.
 '''
-#logoFile = ""
+logoFile = "icon.png"
 
 [[dependencies.bundleapi]]
 modId = "neoforge"
