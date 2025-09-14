@@ -1,0 +1,32 @@
+{
+	"schemaVersion": 1,
+	"id": "bundleapi",
+	"version": "${version}",
+	"name": "Bundle API",
+	"description": "An API for mods that allows easy addition of bundles with custom sizes and filtered content.",
+	"authors": [
+		"TheRedBrain"
+	],
+	"contact": {
+		"sources": "https://github.com/TheRedBrain/bundle-api"
+	},
+	"license": "MIT",
+	"icon": "icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.github.theredbrain.fabric.FabricMod"
+		],
+		"client": [
+          "com.github.theredbrain.fabric.client.FabricClientMod"
+		]
+	},
+	"mixins": [
+		"bundleapi.mixins.json"
+	],
+	"depends": {
+		"minecraft": ">=${minecraft_version_compat} <=${minecraft_version}",
+		"fabricloader": ">=${fabric_loader_version}",
+		"fabric-api": "*"
+	}
+}
