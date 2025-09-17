@@ -1,6 +1,6 @@
 # 1.1.0
 
-- Migrate to Architectury
+- migrated to Architectury (Thanks Daedelus!)
 
 # 1.0.4
 
