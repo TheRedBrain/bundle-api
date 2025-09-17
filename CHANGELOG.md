@@ -1,3 +1,7 @@
+# 1.1.0
+
+- Migrate to Architectury
+
 # 1.0.4
 
 - fixed an issue where the bundle size would be set to 1 after some interactions
