@@ -7,7 +7,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'bundleapi'
+rootProject.name = 'bundle-api'
 
 include 'common'
 include 'fabric'
