@@ -2,8 +2,6 @@ package com.github.theredbrain.bundleapi.client.render.item.property.numeric;
 
 import com.github.theredbrain.bundleapi.item.CustomBundleItem;
 import com.mojang.serialization.MapCodec;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.client.render.item.property.numeric.NumericProperty;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.item.ItemStack;
@@ -17,7 +15,6 @@ import org.jetbrains.annotations.Nullable;
  * an item model definition under {@code assets/<namespace>/items/<item>.json} using
  * {@code {"type":"minecraft:range_dispatch","property":"bundleapi:custom_bundle/fullness", ...}}.
  */
-@Environment(EnvType.CLIENT)
 public record CustomBundleFullnessProperty() implements NumericProperty {
 	public static final MapCodec<CustomBundleFullnessProperty> CODEC = MapCodec.unit(new CustomBundleFullnessProperty());
 

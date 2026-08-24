@@ -1,8 +1,6 @@
 package com.github.theredbrain.bundleapi.client.gui.tooltip;
 
 import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
@@ -21,7 +19,6 @@ import java.util.List;
  * 24x24 slots plus an occupancy progress bar), but reads a {@link CustomBundleContentsComponent}.
  * Unlike vanilla bundles, custom bundles have no "selected stack", so no selection highlight is drawn.
  */
-@Environment(EnvType.CLIENT)
 public class CustomBundleTooltipComponent implements TooltipComponent {
 	private static final Identifier BUNDLE_PROGRESS_BAR_BORDER_TEXTURE = Identifier.ofVanilla("container/bundle/bundle_progressbar_border");
 	private static final Identifier BUNDLE_PROGRESS_BAR_FILL_TEXTURE = Identifier.ofVanilla("container/bundle/bundle_progressbar_fill");
