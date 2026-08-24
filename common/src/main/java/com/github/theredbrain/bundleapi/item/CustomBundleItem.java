@@ -4,6 +4,7 @@ import com.github.theredbrain.bundleapi.BundleAPI;
 import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
 import com.github.theredbrain.bundleapi.item.tooltip.CustomBundleTooltipData;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.TooltipDisplayComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -21,8 +22,9 @@ import net.minecraft.stat.Stats;
 import net.minecraft.text.Text;
 import net.minecraft.util.ClickType;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
+import net.minecraft.util.math.ColorHelper;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import org.apache.commons.lang3.math.Fraction;
@@ -31,9 +33,16 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public class CustomBundleItem extends Item {
-	private static final int ITEM_BAR_COLOR = MathHelper.packRgb(0.4F, 0.4F, 1.0F);
+	private static final int ITEM_BAR_COLOR = ColorHelper.fromFloats(1.0F, 0.4F, 0.4F, 1.0F);
+	/**
+	 * @deprecated Kept for binary compatibility. Since 1.21.4 item model properties are data-driven
+	 * (see {@code bundleapi:custom_bundle/fullness}), so BundleAPI no longer iterates the instances
+	 * to register model predicate providers.
+	 */
+	@Deprecated
 	public final static HashSet<CustomBundleItem> instances = new HashSet<>();
 	private final TagKey<Item> tag;
 
@@ -113,14 +122,14 @@ public class CustomBundleItem extends Item {
 	}
 
 	@Override
-	public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
+	public ActionResult use(World world, PlayerEntity user, Hand hand) {
 		ItemStack itemStack = user.getStackInHand(hand);
 		if (dropAllBundledItems(itemStack, user)) {
 			this.playDropContentsSound(user);
 			user.incrementStat(Stats.USED.getOrCreateStat(this));
-			return TypedActionResult.success(itemStack, world.isClient());
+			return world.isClient() ? ActionResult.SUCCESS : ActionResult.SUCCESS_SERVER;
 		} else {
-			return TypedActionResult.fail(itemStack);
+			return ActionResult.FAIL;
 		}
 	}
 
@@ -157,18 +166,19 @@ public class CustomBundleItem extends Item {
 
 	@Override
 	public Optional<TooltipData> getTooltipData(ItemStack stack) {
-		return !stack.contains(DataComponentTypes.HIDE_TOOLTIP) && !stack.contains(DataComponentTypes.HIDE_ADDITIONAL_TOOLTIP)
-			? Optional.ofNullable(stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT)).map(CustomBundleTooltipData::new)
-			: Optional.empty();
+		TooltipDisplayComponent tooltipDisplayComponent = stack.getOrDefault(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplayComponent.DEFAULT);
+		return !tooltipDisplayComponent.shouldDisplay(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT)
+			? Optional.empty()
+			: Optional.ofNullable(stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT)).map(CustomBundleTooltipData::new);
 	}
 
 	@Override
-	public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType type) {
+	public void appendTooltip(ItemStack stack, TooltipContext context, TooltipDisplayComponent displayComponent, Consumer<Text> textConsumer, TooltipType type) {
 		CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 		if (customBundleContentsComponent != null) {
 			int bundleMaxSize = customBundleContentsComponent.sizeMultiplier() * 64;
 			int i = MathHelper.multiplyFraction(customBundleContentsComponent.getOccupancy(), bundleMaxSize);
-			tooltip.add(Text.translatable("item.minecraft.bundle.fullness", i, bundleMaxSize).formatted(Formatting.GRAY));
+			textConsumer.accept(Text.translatable("item.minecraft.bundle.fullness", i, bundleMaxSize).formatted(Formatting.GRAY));
 		}
 	}
 
@@ -182,14 +192,14 @@ public class CustomBundleItem extends Item {
 	}
 
 	private void playRemoveOneSound(Entity entity) {
-		entity.playSound(SoundEvents.ITEM_BUNDLE_REMOVE_ONE, 0.8F, 0.8F + entity.getWorld().getRandom().nextFloat() * 0.4F);
+		entity.playSound(SoundEvents.ITEM_BUNDLE_REMOVE_ONE, 0.8F, 0.8F + entity.getEntityWorld().getRandom().nextFloat() * 0.4F);
 	}
 
 	private void playInsertSound(Entity entity) {
-		entity.playSound(SoundEvents.ITEM_BUNDLE_INSERT, 0.8F, 0.8F + entity.getWorld().getRandom().nextFloat() * 0.4F);
+		entity.playSound(SoundEvents.ITEM_BUNDLE_INSERT, 0.8F, 0.8F + entity.getEntityWorld().getRandom().nextFloat() * 0.4F);
 	}
 
 	private void playDropContentsSound(Entity entity) {
-		entity.playSound(SoundEvents.ITEM_BUNDLE_DROP_CONTENTS, 0.8F, 0.8F + entity.getWorld().getRandom().nextFloat() * 0.4F);
+		entity.playSound(SoundEvents.ITEM_BUNDLE_DROP_CONTENTS, 0.8F, 0.8F + entity.getEntityWorld().getRandom().nextFloat() * 0.4F);
 	}
 }
