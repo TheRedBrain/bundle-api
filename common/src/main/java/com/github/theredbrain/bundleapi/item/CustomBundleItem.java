@@ -3,37 +3,37 @@ package com.github.theredbrain.bundleapi.item;
 import com.github.theredbrain.bundleapi.BundleAPI;
 import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
 import com.github.theredbrain.bundleapi.item.tooltip.CustomBundleTooltipData;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.TooltipDisplayComponent;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.StackReference;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUsage;
-import net.minecraft.item.tooltip.TooltipData;
-import net.minecraft.registry.tag.TagKey;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.stat.Stats;
-import net.minecraft.text.Text;
-import net.minecraft.util.ClickType;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.ColorHelper;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.World;
 import org.apache.commons.lang3.math.Fraction;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.stats.Stats;
+import net.minecraft.tags.TagKey;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.SlotAccess;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ClickAction;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemUtils;
+import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.level.Level;
 
 public class CustomBundleItem extends Item {
-	private static final int ITEM_BAR_COLOR = ColorHelper.fromFloats(1.0F, 0.4F, 0.4F, 1.0F);
+	private static final int ITEM_BAR_COLOR = ARGB.colorFromFloat(1.0F, 0.4F, 0.4F, 1.0F);
 	/**
 	 * @deprecated Kept for binary compatibility. Since 1.21.4 item model properties are data-driven
 	 * (see {@code bundleapi:custom_bundle/fullness}), so BundleAPI no longer iterates the instances
@@ -42,32 +42,32 @@ public class CustomBundleItem extends Item {
 	@Deprecated
 	public final static HashSet<CustomBundleItem> instances = new HashSet<>();
 	private final TagKey<Item> tag;
-	private final Text emptyDescription;
+	private final Component emptyDescription;
 
 	/**
 	 * @param tag              items allowed inside, {@code null} to allow anything nestable
 	 * @param emptyDescription hint shown inside the tooltip while the bundle is empty,
 	 *                         {@code null} for vanilla's "Can hold a mixed stack of items"
 	 */
-	public CustomBundleItem(@Nullable TagKey<Item> tag, @Nullable Text emptyDescription, Settings settings) {
+	public CustomBundleItem(@Nullable TagKey<Item> tag, @Nullable Component emptyDescription, Properties settings) {
 		super(settings);
 		this.tag = tag;
 		this.emptyDescription = emptyDescription != null ? emptyDescription : CustomBundleTooltipData.DEFAULT_EMPTY_DESCRIPTION;
 		instances.add(this);
 	}
 
-	public CustomBundleItem(@Nullable TagKey<Item> tag, Settings settings) {
+	public CustomBundleItem(@Nullable TagKey<Item> tag, Properties settings) {
 		this(tag, null, settings);
 	}
 
-	public CustomBundleItem(Settings settings) {
+	public CustomBundleItem(Properties settings) {
 		this(null, null, settings);
 	}
 
 	/**
 	 * Hint drawn inside the tooltip while this bundle is empty. Never {@code null}.
 	 */
-	public Text getEmptyDescription() {
+	public Component getEmptyDescription() {
 		return this.emptyDescription;
 	}
 
@@ -77,24 +77,24 @@ public class CustomBundleItem extends Item {
 	}
 
 	@Override
-	public boolean onStackClicked(ItemStack stack, Slot slot, ClickType clickType, PlayerEntity player) {
-		if (clickType != ClickType.RIGHT) {
+	public boolean overrideStackedOnOther(ItemStack stack, Slot slot, ClickAction clickType, Player player) {
+		if (clickType != ClickAction.SECONDARY) {
 			return false;
 		} else {
 			CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 			if (customBundleContentsComponent == null) {
 				return false;
 			} else {
-				ItemStack itemStack = slot.getStack();
+				ItemStack itemStack = slot.getItem();
 				CustomBundleContentsComponent.Builder builder = new CustomBundleContentsComponent.Builder(customBundleContentsComponent);
 				if (itemStack.isEmpty()) {
 					this.playRemoveOneSound(player);
 					ItemStack itemStack2 = builder.removeFirst();
 					if (itemStack2 != null) {
-						ItemStack itemStack3 = slot.insertStack(itemStack2);
+						ItemStack itemStack3 = slot.safeInsert(itemStack2);
 						builder.add(itemStack3);
 					}
-				} else if (itemStack.getItem().canBeNested() && (this.tag == null || itemStack.isIn(this.tag))) {
+				} else if (itemStack.getItem().canFitInsideContainerItems() && (this.tag == null || itemStack.is(this.tag))) {
 					int i = builder.add(slot, player);
 					if (i > 0) {
 						this.playInsertSound(player);
@@ -108,8 +108,8 @@ public class CustomBundleItem extends Item {
 	}
 
 	@Override
-	public boolean onClicked(ItemStack stack, ItemStack otherStack, Slot slot, ClickType clickType, PlayerEntity player, StackReference cursorStackReference) {
-		if (clickType == ClickType.RIGHT && slot.canTakePartial(player)) {
+	public boolean overrideOtherStackedOnMe(ItemStack stack, ItemStack otherStack, Slot slot, ClickAction clickType, Player player, SlotAccess cursorStackReference) {
+		if (clickType == ClickAction.SECONDARY && slot.allowModification(player)) {
 			CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 			if (customBundleContentsComponent == null) {
 				return false;
@@ -121,7 +121,7 @@ public class CustomBundleItem extends Item {
 						this.playRemoveOneSound(player);
 						cursorStackReference.set(itemStack);
 					}
-				} else if (this.tag == null || otherStack.isIn(this.tag)) {
+				} else if (this.tag == null || otherStack.is(this.tag)) {
 					int i = builder.add(otherStack);
 					if (i > 0) {
 						this.playInsertSound(player);
@@ -137,40 +137,40 @@ public class CustomBundleItem extends Item {
 	}
 
 	@Override
-	public ActionResult use(World world, PlayerEntity user, Hand hand) {
-		ItemStack itemStack = user.getStackInHand(hand);
+	public InteractionResult use(Level world, Player user, InteractionHand hand) {
+		ItemStack itemStack = user.getItemInHand(hand);
 		if (dropAllBundledItems(itemStack, user)) {
 			this.playDropContentsSound(user);
-			user.incrementStat(Stats.USED.getOrCreateStat(this));
-			return world.isClient() ? ActionResult.SUCCESS : ActionResult.SUCCESS_SERVER;
+			user.awardStat(Stats.ITEM_USED.get(this));
+			return world.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
 		} else {
-			return ActionResult.FAIL;
+			return InteractionResult.FAIL;
 		}
 	}
 
 	@Override
-	public boolean isItemBarVisible(ItemStack stack) {
+	public boolean isBarVisible(ItemStack stack) {
 		CustomBundleContentsComponent customBundleContentsComponent = stack.getOrDefault(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.DEFAULT);
 		return customBundleContentsComponent.getOccupancy().compareTo(Fraction.ZERO) > 0;
 	}
 
 	@Override
-	public int getItemBarStep(ItemStack stack) {
+	public int getBarWidth(ItemStack stack) {
 		CustomBundleContentsComponent customBundleContentsComponent = stack.getOrDefault(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.DEFAULT);
-		return Math.min(1 + MathHelper.multiplyFraction(customBundleContentsComponent.getOccupancy(), 12), 13);
+		return Math.min(1 + Mth.mulAndTruncate(customBundleContentsComponent.getOccupancy(), 12), 13);
 	}
 
 	@Override
-	public int getItemBarColor(ItemStack stack) {
+	public int getBarColor(ItemStack stack) {
 		return ITEM_BAR_COLOR;
 	}
 
-	private static boolean dropAllBundledItems(ItemStack stack, PlayerEntity player) {
+	private static boolean dropAllBundledItems(ItemStack stack, Player player) {
 		CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 		if (customBundleContentsComponent != null && !customBundleContentsComponent.isEmpty()) {
 			stack.set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, new CustomBundleContentsComponent.Builder(customBundleContentsComponent).clear().build());
-			if (player instanceof ServerPlayerEntity) {
-				customBundleContentsComponent.iterateCopy().forEach(stackx -> player.dropItem(stackx, true));
+			if (player instanceof ServerPlayer) {
+				customBundleContentsComponent.iterateCopy().forEach(stackx -> player.drop(stackx, true));
 			}
 
 			return true;
@@ -180,31 +180,31 @@ public class CustomBundleItem extends Item {
 	}
 
 	@Override
-	public Optional<TooltipData> getTooltipData(ItemStack stack) {
-		TooltipDisplayComponent tooltipDisplayComponent = stack.getOrDefault(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplayComponent.DEFAULT);
-		return !tooltipDisplayComponent.shouldDisplay(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT)
+	public Optional<TooltipComponent> getTooltipImage(ItemStack stack) {
+		TooltipDisplay tooltipDisplayComponent = stack.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);
+		return !tooltipDisplayComponent.shows(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT)
 			? Optional.empty()
 			: Optional.ofNullable(stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT)).map(contents -> new CustomBundleTooltipData(contents, this.emptyDescription));
 	}
 
 	@Override
-	public void onItemEntityDestroyed(ItemEntity entity) {
-		CustomBundleContentsComponent customBundleContentsComponent = entity.getStack().get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
+	public void onDestroyed(ItemEntity entity) {
+		CustomBundleContentsComponent customBundleContentsComponent = entity.getItem().get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 		if (customBundleContentsComponent != null) {
-			entity.getStack().set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, new CustomBundleContentsComponent.Builder(customBundleContentsComponent).clear().build());
-			ItemUsage.spawnItemContents(entity, customBundleContentsComponent.iterateCopy());
+			entity.getItem().set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, new CustomBundleContentsComponent.Builder(customBundleContentsComponent).clear().build());
+			ItemUtils.onContainerDestroyed(entity, customBundleContentsComponent.iterateCopy());
 		}
 	}
 
 	private void playRemoveOneSound(Entity entity) {
-		entity.playSound(SoundEvents.ITEM_BUNDLE_REMOVE_ONE, 0.8F, 0.8F + entity.getEntityWorld().getRandom().nextFloat() * 0.4F);
+		entity.playSound(SoundEvents.BUNDLE_REMOVE_ONE, 0.8F, 0.8F + entity.level().getRandom().nextFloat() * 0.4F);
 	}
 
 	private void playInsertSound(Entity entity) {
-		entity.playSound(SoundEvents.ITEM_BUNDLE_INSERT, 0.8F, 0.8F + entity.getEntityWorld().getRandom().nextFloat() * 0.4F);
+		entity.playSound(SoundEvents.BUNDLE_INSERT, 0.8F, 0.8F + entity.level().getRandom().nextFloat() * 0.4F);
 	}
 
 	private void playDropContentsSound(Entity entity) {
-		entity.playSound(SoundEvents.ITEM_BUNDLE_DROP_CONTENTS, 0.8F, 0.8F + entity.getEntityWorld().getRandom().nextFloat() * 0.4F);
+		entity.playSound(SoundEvents.BUNDLE_DROP_CONTENTS, 0.8F, 0.8F + entity.level().getRandom().nextFloat() * 0.4F);
 	}
 }

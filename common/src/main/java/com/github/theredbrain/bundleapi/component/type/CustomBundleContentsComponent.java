@@ -4,24 +4,24 @@ import com.github.theredbrain.bundleapi.BundleAPI;
 import com.google.common.collect.Lists;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.entity.BeehiveBlockEntity;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.BeesComponent;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.tooltip.TooltipData;
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.screen.slot.Slot;
 import org.apache.commons.lang3.math.Fraction;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.Bees;
+import net.minecraft.world.level.block.entity.BeehiveBlockEntity;
 
-public record CustomBundleContentsComponent(Content content, Fraction occupancy/*, Optional<RegistryEntryList<Item>> tag  TODO add tag key in 1.21.4*/, int size_multiplier) implements TooltipData {
+public record CustomBundleContentsComponent(Content content, Fraction occupancy/*, Optional<RegistryEntryList<Item>> tag  TODO add tag key in 1.21.4*/, int size_multiplier) implements TooltipComponent {
 	public static final CustomBundleContentsComponent DEFAULT = new CustomBundleContentsComponent(List.of()/*, Optional.empty()*/, 1);
 	public static final Codec<CustomBundleContentsComponent> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
@@ -31,12 +31,12 @@ public record CustomBundleContentsComponent(Content content, Fraction occupancy/
 					)
 					.apply(instance, CustomBundleContentsComponent::new)
 	);
-	public static final PacketCodec<RegistryByteBuf, CustomBundleContentsComponent> PACKET_CODEC = PacketCodec.tuple(
+	public static final StreamCodec<RegistryFriendlyByteBuf, CustomBundleContentsComponent> PACKET_CODEC = StreamCodec.composite(
 			CustomBundleContentsComponent.Content.PACKET_CODEC,
 			component -> component.content,
 //			PacketCodecs.optional(PacketCodecs.registryEntryList(RegistryKeys.ITEM)),
 //			component -> component.tag,
-			PacketCodecs.VAR_INT,
+			ByteBufCodecs.VAR_INT,
 			component -> component.size_multiplier,
 			CustomBundleContentsComponent::new
 	);
@@ -84,8 +84,8 @@ public record CustomBundleContentsComponent(Content content, Fraction occupancy/
 		if (customBundleContentsComponent != null) {
 			return NESTED_BUNDLE_OCCUPANCY.add(customBundleContentsComponent.getOccupancy());
 		} else {
-			List<BeehiveBlockEntity.BeeData> list = stack.getOrDefault(DataComponentTypes.BEES, BeesComponent.DEFAULT).bees();
-			return !list.isEmpty() ? Fraction.ONE : Fraction.getFraction(1, stack.getMaxCount() * size_multiplier);
+			List<BeehiveBlockEntity.Occupant> list = stack.getOrDefault(DataComponents.BEES, Bees.EMPTY).bees();
+			return !list.isEmpty() ? Fraction.ONE : Fraction.getFraction(1, stack.getMaxStackSize() * size_multiplier);
 		}
 	}
 
@@ -145,7 +145,7 @@ public record CustomBundleContentsComponent(Content content, Fraction occupancy/
 				return -1;
 			} else {
 				for (int i = 0; i < this.content.stacks.size(); i++) {
-					if (ItemStack.areItemsAndComponentsEqual((ItemStack) this.content.stacks.get(i), stack) && this.content.stacks.get(i).getCount() < this.content.stacks.get(i).getMaxCount()) {
+					if (ItemStack.isSameItemSameComponents((ItemStack) this.content.stacks.get(i), stack) && this.content.stacks.get(i).getCount() < this.content.stacks.get(i).getMaxStackSize()) {
 						return i;
 					}
 				}
@@ -160,7 +160,7 @@ public record CustomBundleContentsComponent(Content content, Fraction occupancy/
 		}
 
 		public int add(ItemStack stack) {
-			if (!stack.isEmpty() && stack.getItem().canBeNested()) {
+			if (!stack.isEmpty() && stack.getItem().canFitInsideContainerItems()) {
 				int i = Math.min(stack.getCount(), this.getMaxAllowed(stack));
 				if (i == 0) {
 					return 0;
@@ -169,12 +169,12 @@ public record CustomBundleContentsComponent(Content content, Fraction occupancy/
 					int j = this.addInternal(stack);
 					if (j != -1) {
 						ItemStack itemStack = (ItemStack) this.content.stacks.remove(j);
-						int maxCount = itemStack.getMaxCount();
+						int maxCount = itemStack.getMaxStackSize();
 						int count = itemStack.getCount();
 						int countDiff = maxCount - count;
 						if (i <= countDiff) {
 							ItemStack itemStack2 = itemStack.copyWithCount(itemStack.getCount() + i);
-							stack.decrement(i);
+							stack.shrink(i);
 							this.content.stacks.add(0, itemStack2);
 						} else {
 							ItemStack itemStack2 = itemStack.copyWithCount(itemStack.getCount() + countDiff);
@@ -182,7 +182,7 @@ public record CustomBundleContentsComponent(Content content, Fraction occupancy/
 
 							ItemStack itemStack3 = stack.copyWithCount(i - countDiff);
 							this.content.stacks.add(0, itemStack3);
-							stack.decrement(i);
+							stack.shrink(i);
 						}
 					} else {
 						this.content.stacks.add(0, stack.split(i));
@@ -195,10 +195,10 @@ public record CustomBundleContentsComponent(Content content, Fraction occupancy/
 			}
 		}
 
-		public int add(Slot slot, PlayerEntity player) {
-			ItemStack itemStack = slot.getStack();
+		public int add(Slot slot, Player player) {
+			ItemStack itemStack = slot.getItem();
 			int i = this.getMaxAllowed(itemStack);
-			return this.add(slot.takeStackRange(itemStack.getCount(), i, player));
+			return this.add(slot.safeTake(itemStack.getCount(), i, player));
 		}
 
 		@Nullable
@@ -235,9 +235,9 @@ public record CustomBundleContentsComponent(Content content, Fraction occupancy/
 	public record Content(List<ItemStack> stacks) {
 		public static final Content DEFAULT = new Content(List.of());
 		public static final Codec<Content> CODEC = ItemStack.CODEC.listOf().xmap(Content::new, component -> component.stacks);
-		public static final PacketCodec<RegistryByteBuf, Content> PACKET_CODEC = ItemStack.PACKET_CODEC
-				.collect(PacketCodecs.toList())
-				.xmap(Content::new, content -> content.stacks);
+		public static final StreamCodec<RegistryFriendlyByteBuf, Content> PACKET_CODEC = ItemStack.STREAM_CODEC
+				.apply(ByteBufCodecs.list())
+				.map(Content::new, content -> content.stacks);
 
 		public Content(List<ItemStack> stacks) {
 			this.stacks = new ArrayList<ItemStack>(stacks);

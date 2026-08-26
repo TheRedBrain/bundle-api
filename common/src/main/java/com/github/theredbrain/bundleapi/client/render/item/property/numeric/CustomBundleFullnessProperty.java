@@ -2,10 +2,10 @@ package com.github.theredbrain.bundleapi.client.render.item.property.numeric;
 
 import com.github.theredbrain.bundleapi.item.CustomBundleItem;
 import com.mojang.serialization.MapCodec;
-import net.minecraft.client.render.item.property.numeric.NumericProperty;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.HeldItemContext;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.item.properties.numeric.RangeSelectItemModelProperty;
+import net.minecraft.world.entity.ItemOwner;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -15,16 +15,16 @@ import org.jetbrains.annotations.Nullable;
  * an item model definition under {@code assets/<namespace>/items/<item>.json} using
  * {@code {"type":"minecraft:range_dispatch","property":"bundleapi:custom_bundle/fullness", ...}}.
  */
-public record CustomBundleFullnessProperty() implements NumericProperty {
+public record CustomBundleFullnessProperty() implements RangeSelectItemModelProperty {
 	public static final MapCodec<CustomBundleFullnessProperty> CODEC = MapCodec.unit(new CustomBundleFullnessProperty());
 
 	@Override
-	public float getValue(ItemStack stack, @Nullable ClientWorld world, @Nullable HeldItemContext context, int seed) {
+	public float get(ItemStack stack, @Nullable ClientLevel world, @Nullable ItemOwner context, int seed) {
 		return CustomBundleItem.getAmountFilled(stack);
 	}
 
 	@Override
-	public MapCodec<CustomBundleFullnessProperty> getCodec() {
+	public MapCodec<CustomBundleFullnessProperty> type() {
 		return CODEC;
 	}
 }

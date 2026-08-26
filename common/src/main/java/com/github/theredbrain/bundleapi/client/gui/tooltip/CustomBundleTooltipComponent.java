@@ -2,29 +2,29 @@ package com.github.theredbrain.bundleapi.client.gui.tooltip;
 
 import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
 import com.github.theredbrain.bundleapi.item.tooltip.CustomBundleTooltipData;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.tooltip.TooltipComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
 import org.apache.commons.lang3.math.Fraction;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Mirrors vanilla {@code BundleTooltipComponent} (1.21.4+ bundle tooltip layout: a grid of
  * 24x24 slots plus an occupancy progress bar), but reads a {@link CustomBundleContentsComponent}.
  * Unlike vanilla bundles, custom bundles have no "selected stack", so no selection highlight is drawn.
  */
-public class CustomBundleTooltipComponent implements TooltipComponent {
-	private static final Identifier BUNDLE_PROGRESS_BAR_BORDER_TEXTURE = Identifier.ofVanilla("container/bundle/bundle_progressbar_border");
-	private static final Identifier BUNDLE_PROGRESS_BAR_FILL_TEXTURE = Identifier.ofVanilla("container/bundle/bundle_progressbar_fill");
-	private static final Identifier BUNDLE_PROGRESS_BAR_FULL_TEXTURE = Identifier.ofVanilla("container/bundle/bundle_progressbar_full");
-	private static final Identifier BUNDLE_SLOT_BACKGROUND_TEXTURE = Identifier.ofVanilla("container/bundle/slot_background");
+public class CustomBundleTooltipComponent implements ClientTooltipComponent {
+	private static final Identifier BUNDLE_PROGRESS_BAR_BORDER_TEXTURE = Identifier.withDefaultNamespace("container/bundle/bundle_progressbar_border");
+	private static final Identifier BUNDLE_PROGRESS_BAR_FILL_TEXTURE = Identifier.withDefaultNamespace("container/bundle/bundle_progressbar_fill");
+	private static final Identifier BUNDLE_PROGRESS_BAR_FULL_TEXTURE = Identifier.withDefaultNamespace("container/bundle/bundle_progressbar_full");
+	private static final Identifier BUNDLE_SLOT_BACKGROUND_TEXTURE = Identifier.withDefaultNamespace("container/bundle/slot_background");
 	private static final int SLOTS_PER_ROW = 4;
 	private static final int SLOT_DIMENSION = 24;
 	private static final int ROW_WIDTH = 96;
@@ -32,12 +32,12 @@ public class CustomBundleTooltipComponent implements TooltipComponent {
 	private static final int PROGRESS_BAR_WIDTH = 94;
 	private static final int MAX_SLOTS_SHOWN = 12;
 	private static final int MAX_SLOTS_SHOWN_WHEN_TOO_MANY_TYPES = 11;
-	private static final Text BUNDLE_FULL = Text.translatable("item.minecraft.bundle.full");
-	private static final Text BUNDLE_EMPTY = Text.translatable("item.minecraft.bundle.empty");
+	private static final Component BUNDLE_FULL = Component.translatable("item.minecraft.bundle.full");
+	private static final Component BUNDLE_EMPTY = Component.translatable("item.minecraft.bundle.empty");
 	private final CustomBundleContentsComponent customBundleContents;
-	private final Text emptyDescription;
+	private final Component emptyDescription;
 
-	public CustomBundleTooltipComponent(CustomBundleContentsComponent customBundleContents, Text emptyDescription) {
+	public CustomBundleTooltipComponent(CustomBundleContentsComponent customBundleContents, Component emptyDescription) {
 		this.customBundleContents = customBundleContents;
 		this.emptyDescription = emptyDescription;
 	}
@@ -51,21 +51,21 @@ public class CustomBundleTooltipComponent implements TooltipComponent {
 	}
 
 	@Override
-	public int getHeight(TextRenderer textRenderer) {
+	public int getHeight(Font textRenderer) {
 		return this.customBundleContents.isEmpty() ? this.getHeightOfEmpty(textRenderer) : this.getHeightOfNonEmpty();
 	}
 
 	@Override
-	public int getWidth(TextRenderer textRenderer) {
+	public int getWidth(Font textRenderer) {
 		return ROW_WIDTH;
 	}
 
 	@Override
-	public boolean isSticky() {
+	public boolean showTooltipWithItemInHand() {
 		return true;
 	}
 
-	private int getHeightOfEmpty(TextRenderer textRenderer) {
+	private int getHeightOfEmpty(Font textRenderer) {
 		return this.getDescriptionHeight(textRenderer) + PROGRESS_BAR_HEIGHT + 8;
 	}
 
@@ -82,7 +82,7 @@ public class CustomBundleTooltipComponent implements TooltipComponent {
 	}
 
 	private int getRows() {
-		return MathHelper.ceilDiv(this.getNumVisibleSlots(), SLOTS_PER_ROW);
+		return Mth.positiveCeilDiv(this.getNumVisibleSlots(), SLOTS_PER_ROW);
 	}
 
 	private int getNumVisibleSlots() {
@@ -101,7 +101,7 @@ public class CustomBundleTooltipComponent implements TooltipComponent {
 	}
 
 	@Override
-	public void drawItems(TextRenderer textRenderer, int x, int y, int width, int height, DrawContext context) {
+	public void renderImage(Font textRenderer, int x, int y, int width, int height, GuiGraphics context) {
 		if (this.customBundleContents.isEmpty()) {
 			this.drawEmptyTooltip(textRenderer, x, y, width, context);
 		} else {
@@ -109,12 +109,12 @@ public class CustomBundleTooltipComponent implements TooltipComponent {
 		}
 	}
 
-	private void drawEmptyTooltip(TextRenderer textRenderer, int x, int y, int width, DrawContext context) {
+	private void drawEmptyTooltip(Font textRenderer, int x, int y, int width, GuiGraphics context) {
 		this.drawEmptyDescription(x + this.getXMargin(width), y, textRenderer, context);
 		this.drawProgressBar(x + this.getXMargin(width), y + this.getDescriptionHeight(textRenderer) + 4, textRenderer, context);
 	}
 
-	private void drawNonEmptyTooltip(TextRenderer textRenderer, int x, int y, int width, DrawContext context) {
+	private void drawNonEmptyTooltip(Font textRenderer, int x, int y, int width, GuiGraphics context) {
 		boolean bl = this.customBundleContents.size() > MAX_SLOTS_SHOWN;
 		List<ItemStack> list = this.firstStacksInContents(this.getNumberOfStacksShown());
 		int i = x + this.getXMargin(width) + ROW_WIDTH;
@@ -154,37 +154,37 @@ public class CustomBundleTooltipComponent implements TooltipComponent {
 		return this.customBundleContents.stream().skip(items.size()).mapToInt(ItemStack::getCount).sum();
 	}
 
-	private static void drawItem(int index, int x, int y, List<ItemStack> stacks, int seed, TextRenderer textRenderer, DrawContext drawContext) {
+	private static void drawItem(int index, int x, int y, List<ItemStack> stacks, int seed, Font textRenderer, GuiGraphics drawContext) {
 		int i = stacks.size() - index;
 		ItemStack itemStack = stacks.get(i);
-		drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, BUNDLE_SLOT_BACKGROUND_TEXTURE, x, y, SLOT_DIMENSION, SLOT_DIMENSION);
-		drawContext.drawItem(itemStack, x + 4, y + 4, seed);
-		drawContext.drawStackOverlay(textRenderer, itemStack, x + 4, y + 4);
+		drawContext.blitSprite(RenderPipelines.GUI_TEXTURED, BUNDLE_SLOT_BACKGROUND_TEXTURE, x, y, SLOT_DIMENSION, SLOT_DIMENSION);
+		drawContext.renderItem(itemStack, x + 4, y + 4, seed);
+		drawContext.renderItemDecorations(textRenderer, itemStack, x + 4, y + 4);
 	}
 
-	private static void drawExtraItemsCount(int x, int y, int numExtra, TextRenderer textRenderer, DrawContext drawContext) {
-		drawContext.drawCenteredTextWithShadow(textRenderer, "+" + numExtra, x + 12, y + 10, -1);
+	private static void drawExtraItemsCount(int x, int y, int numExtra, Font textRenderer, GuiGraphics drawContext) {
+		drawContext.drawCenteredString(textRenderer, "+" + numExtra, x + 12, y + 10, -1);
 	}
 
-	private void drawProgressBar(int x, int y, TextRenderer textRenderer, DrawContext drawContext) {
-		drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, this.getProgressBarFillTexture(), x + 1, y, this.getProgressBarFill(), PROGRESS_BAR_HEIGHT);
-		drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, BUNDLE_PROGRESS_BAR_BORDER_TEXTURE, x, y, ROW_WIDTH, PROGRESS_BAR_HEIGHT);
-		Text text = this.getProgressBarLabel();
+	private void drawProgressBar(int x, int y, Font textRenderer, GuiGraphics drawContext) {
+		drawContext.blitSprite(RenderPipelines.GUI_TEXTURED, this.getProgressBarFillTexture(), x + 1, y, this.getProgressBarFill(), PROGRESS_BAR_HEIGHT);
+		drawContext.blitSprite(RenderPipelines.GUI_TEXTURED, BUNDLE_PROGRESS_BAR_BORDER_TEXTURE, x, y, ROW_WIDTH, PROGRESS_BAR_HEIGHT);
+		Component text = this.getProgressBarLabel();
 		if (text != null) {
-			drawContext.drawCenteredTextWithShadow(textRenderer, text, x + 48, y + 3, -1);
+			drawContext.drawCenteredString(textRenderer, text, x + 48, y + 3, -1);
 		}
 	}
 
-	private void drawEmptyDescription(int x, int y, TextRenderer textRenderer, DrawContext drawContext) {
-		drawContext.drawWrappedTextWithShadow(textRenderer, this.emptyDescription, x, y, ROW_WIDTH, -5592406);
+	private void drawEmptyDescription(int x, int y, Font textRenderer, GuiGraphics drawContext) {
+		drawContext.drawWordWrap(textRenderer, this.emptyDescription, x, y, ROW_WIDTH, -5592406);
 	}
 
-	private int getDescriptionHeight(TextRenderer textRenderer) {
-		return textRenderer.wrapLines(this.emptyDescription, ROW_WIDTH).size() * 9;
+	private int getDescriptionHeight(Font textRenderer) {
+		return textRenderer.split(this.emptyDescription, ROW_WIDTH).size() * 9;
 	}
 
 	private int getProgressBarFill() {
-		return MathHelper.clamp(MathHelper.multiplyFraction(this.customBundleContents.getOccupancy(), PROGRESS_BAR_WIDTH), 0, PROGRESS_BAR_WIDTH);
+		return Mth.clamp(Mth.mulAndTruncate(this.customBundleContents.getOccupancy(), PROGRESS_BAR_WIDTH), 0, PROGRESS_BAR_WIDTH);
 	}
 
 	private Identifier getProgressBarFillTexture() {
@@ -192,7 +192,7 @@ public class CustomBundleTooltipComponent implements TooltipComponent {
 	}
 
 	@Nullable
-	private Text getProgressBarLabel() {
+	private Component getProgressBarLabel() {
 		if (this.customBundleContents.isEmpty()) {
 			return BUNDLE_EMPTY;
 		} else {

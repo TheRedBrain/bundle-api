@@ -4,28 +4,27 @@ import com.github.theredbrain.bundleapi.BundleAPI;
 import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.component.ComponentType;
-import net.minecraft.item.ItemStack;
-import net.minecraft.predicate.collection.CollectionPredicate;
-import net.minecraft.predicate.component.ComponentSubPredicate;
-import net.minecraft.predicate.item.ItemPredicate;
-
 import java.util.Optional;
+import net.minecraft.advancements.criterion.CollectionPredicate;
+import net.minecraft.advancements.criterion.ItemPredicate;
+import net.minecraft.advancements.criterion.SingleComponentItemPredicate;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.world.item.ItemStack;
 
 public record CustomBundleContentsPredicate(
-		Optional<CollectionPredicate<ItemStack, ItemPredicate>> items) implements ComponentSubPredicate<CustomBundleContentsComponent> {
+		Optional<CollectionPredicate<ItemStack, ItemPredicate>> items) implements SingleComponentItemPredicate<CustomBundleContentsComponent> {
 	public static final Codec<CustomBundleContentsPredicate> CODEC = RecordCodecBuilder.create(
-			instance -> instance.group(CollectionPredicate.<ItemStack, ItemPredicate>createCodec(ItemPredicate.CODEC).optionalFieldOf("items").forGetter(CustomBundleContentsPredicate::items))
+			instance -> instance.group(CollectionPredicate.<ItemStack, ItemPredicate>codec(ItemPredicate.CODEC).optionalFieldOf("items").forGetter(CustomBundleContentsPredicate::items))
 					.apply(instance, CustomBundleContentsPredicate::new)
 	);
 
 	@Override
-	public ComponentType<CustomBundleContentsComponent> getComponentType() {
+	public DataComponentType<CustomBundleContentsComponent> componentType() {
 		return BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT;
 	}
 
 	@Override
-	public boolean test(CustomBundleContentsComponent customBundleContentsComponent) {
+	public boolean matches(CustomBundleContentsComponent customBundleContentsComponent) {
 		return !this.items.isPresent() || this.items.get().test(customBundleContentsComponent.iterate());
 	}
 }
