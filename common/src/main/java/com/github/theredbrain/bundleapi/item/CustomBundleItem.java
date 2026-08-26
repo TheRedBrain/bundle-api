@@ -13,15 +13,12 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsage;
 import net.minecraft.item.tooltip.TooltipData;
-import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.stat.Stats;
-import net.minecraft.text.Text;
 import net.minecraft.util.ClickType;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.ColorHelper;
@@ -33,7 +30,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 public class CustomBundleItem extends Item {
 	private static final int ITEM_BAR_COLOR = ColorHelper.fromFloats(1.0F, 0.4F, 0.4F, 1.0F);
@@ -170,16 +166,6 @@ public class CustomBundleItem extends Item {
 		return !tooltipDisplayComponent.shouldDisplay(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT)
 			? Optional.empty()
 			: Optional.ofNullable(stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT)).map(CustomBundleTooltipData::new);
-	}
-
-	@Override
-	public void appendTooltip(ItemStack stack, TooltipContext context, TooltipDisplayComponent displayComponent, Consumer<Text> textConsumer, TooltipType type) {
-		CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
-		if (customBundleContentsComponent != null) {
-			int bundleMaxSize = customBundleContentsComponent.sizeMultiplier() * 64;
-			int i = MathHelper.multiplyFraction(customBundleContentsComponent.getOccupancy(), bundleMaxSize);
-			textConsumer.accept(Text.translatable("item.minecraft.bundle.fullness", i, bundleMaxSize).formatted(Formatting.GRAY));
-		}
 	}
 
 	@Override
