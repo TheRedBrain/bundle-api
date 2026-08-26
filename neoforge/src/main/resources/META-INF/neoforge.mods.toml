@@ -16,14 +16,14 @@ logoFile = "icon.png"
 [[dependencies.bundleapi]]
 modId = "neoforge"
 type = "required"
-versionRange = "[21.11,)"
+versionRange = "[${minecraft_min_version},)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.bundleapi]]
 modId = "minecraft"
 type = "required"
-versionRange = "[1.21.11,)"
+versionRange = "[${minecraft_min_version},)"
 ordering = "NONE"
 side = "BOTH"
 

@@ -61,12 +61,12 @@ repositories {
 }
 
 dependencies {
-    modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
-    common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
+    implementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
+    common(project(path: ':common')) { transitive = false }
     shadowBundle project(path: ':common', configuration: 'transformProductionFabric')
 
     // Fabric API, only for the testmod
-    modImplementation "net.fabricmc.fabric-api:fabric-api:$rootProject.fabric_api_version"
+    implementation "net.fabricmc.fabric-api:fabric-api:$rootProject.fabric_api_version"
 }
 
 processResources {
@@ -77,13 +77,28 @@ processResources {
     }
 }
 
-shadowJar {
-    configurations = [project.configurations.shadowBundle]
-    archiveClassifier = 'dev-shadow'
+// Minecraft is not obfuscated on this version, so there is no remapJar task.
+// The shaded jar is the mod jar that ships.
+jar {
+    archiveClassifier = 'dev'
 }
 
-remapJar {
-    inputFile.set shadowJar.archiveFile
+shadowJar {
+    configurations = [project.configurations.shadowBundle]
+    archiveClassifier = null
+}
+
+assemble.dependsOn shadowJar
+
+configurations {
+    apiElements {
+        outgoing.artifacts.clear()
+        outgoing.artifact(shadowJar)
+    }
+    runtimeElements {
+        outgoing.artifacts.clear()
+        outgoing.artifact(shadowJar)
+    }
 }
 
 if (project.hasProperty('release_type')) {
@@ -101,13 +116,12 @@ if (project.hasProperty('release_type')) {
             changelog = changelog_last_section()
             changelogType = 'markdown'
             releaseType = release_type
-            addGameVersion "${project.minecraft_version}"
-            addGameVersion "${project.minecraft_version_compat}"
+            rootProject.minecraftCompatVersions.each { addGameVersion it }
             addGameVersion "Fabric"
 
-            mainArtifact(remapJar)
+            mainArtifact(shadowJar)
             afterEvaluate {
-                uploadTask.dependsOn(remapJar)
+                uploadTask.dependsOn(shadowJar)
             }
             options {
                 forgeGradleIntegration = false
@@ -123,8 +137,8 @@ if (project.hasProperty('release_type')) {
         versionNumber = "${version}-fabric"
         // You don't need to set this manually. Will fail if Modrinth has this version already
         versionType = release_type // This is the default -- can also be `beta` or `alpha`
-        uploadFile = remapJar // With Loom, this MUST be set to `remapJar` instead of `jar`!
-        gameVersions = ["${project.minecraft_version}", "${project.minecraft_version_compat}"] // Must be an array, even with only one version
+        uploadFile = shadowJar // no remapJar on 26.1+: the shaded jar is the shipped artifact
+        gameVersions = rootProject.minecraftCompatVersions // Must be an array, even with only one version
         loaders = ["fabric"] // Must also be an array - no need to specify this if you're using Loom or ForgeGradle
         changelog = changelog_last_section()
         dependencies { // A special DSL for creating dependencies
