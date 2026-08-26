@@ -18,6 +18,7 @@ import net.minecraft.screen.slot.Slot;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.stat.Stats;
+import net.minecraft.text.Text;
 import net.minecraft.util.ClickType;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -41,15 +42,33 @@ public class CustomBundleItem extends Item {
 	@Deprecated
 	public final static HashSet<CustomBundleItem> instances = new HashSet<>();
 	private final TagKey<Item> tag;
+	private final Text emptyDescription;
 
-	public CustomBundleItem(@Nullable TagKey<Item> tag, Settings settings) {
+	/**
+	 * @param tag              items allowed inside, {@code null} to allow anything nestable
+	 * @param emptyDescription hint shown inside the tooltip while the bundle is empty,
+	 *                         {@code null} for vanilla's "Can hold a mixed stack of items"
+	 */
+	public CustomBundleItem(@Nullable TagKey<Item> tag, @Nullable Text emptyDescription, Settings settings) {
 		super(settings);
 		this.tag = tag;
+		this.emptyDescription = emptyDescription != null ? emptyDescription : CustomBundleTooltipData.DEFAULT_EMPTY_DESCRIPTION;
 		instances.add(this);
 	}
 
+	public CustomBundleItem(@Nullable TagKey<Item> tag, Settings settings) {
+		this(tag, null, settings);
+	}
+
 	public CustomBundleItem(Settings settings) {
-		this(null, settings);
+		this(null, null, settings);
+	}
+
+	/**
+	 * Hint drawn inside the tooltip while this bundle is empty. Never {@code null}.
+	 */
+	public Text getEmptyDescription() {
+		return this.emptyDescription;
 	}
 
 	public static float getAmountFilled(ItemStack stack) {
@@ -165,7 +184,7 @@ public class CustomBundleItem extends Item {
 		TooltipDisplayComponent tooltipDisplayComponent = stack.getOrDefault(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplayComponent.DEFAULT);
 		return !tooltipDisplayComponent.shouldDisplay(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT)
 			? Optional.empty()
-			: Optional.ofNullable(stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT)).map(CustomBundleTooltipData::new);
+			: Optional.ofNullable(stack.get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT)).map(contents -> new CustomBundleTooltipData(contents, this.emptyDescription));
 	}
 
 	@Override

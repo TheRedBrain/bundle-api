@@ -1,6 +1,7 @@
 package com.github.theredbrain.bundleapi.client.gui.tooltip;
 
 import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
+import com.github.theredbrain.bundleapi.item.tooltip.CustomBundleTooltipData;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
@@ -33,16 +34,25 @@ public class CustomBundleTooltipComponent implements TooltipComponent {
 	private static final int MAX_SLOTS_SHOWN_WHEN_TOO_MANY_TYPES = 11;
 	private static final Text BUNDLE_FULL = Text.translatable("item.minecraft.bundle.full");
 	private static final Text BUNDLE_EMPTY = Text.translatable("item.minecraft.bundle.empty");
-	private static final Text BUNDLE_EMPTY_DESCRIPTION = Text.translatable("item.minecraft.bundle.empty.description");
 	private final CustomBundleContentsComponent customBundleContents;
+	private final Text emptyDescription;
 
-	public CustomBundleTooltipComponent(CustomBundleContentsComponent customBundleContents) {
+	public CustomBundleTooltipComponent(CustomBundleContentsComponent customBundleContents, Text emptyDescription) {
 		this.customBundleContents = customBundleContents;
+		this.emptyDescription = emptyDescription;
+	}
+
+	/**
+	 * @deprecated Kept for binary compatibility, uses {@link CustomBundleTooltipData#DEFAULT_EMPTY_DESCRIPTION}.
+	 */
+	@Deprecated
+	public CustomBundleTooltipComponent(CustomBundleContentsComponent customBundleContents) {
+		this(customBundleContents, CustomBundleTooltipData.DEFAULT_EMPTY_DESCRIPTION);
 	}
 
 	@Override
 	public int getHeight(TextRenderer textRenderer) {
-		return this.customBundleContents.isEmpty() ? getHeightOfEmpty(textRenderer) : this.getHeightOfNonEmpty();
+		return this.customBundleContents.isEmpty() ? this.getHeightOfEmpty(textRenderer) : this.getHeightOfNonEmpty();
 	}
 
 	@Override
@@ -55,8 +65,8 @@ public class CustomBundleTooltipComponent implements TooltipComponent {
 		return true;
 	}
 
-	private static int getHeightOfEmpty(TextRenderer textRenderer) {
-		return getDescriptionHeight(textRenderer) + PROGRESS_BAR_HEIGHT + 8;
+	private int getHeightOfEmpty(TextRenderer textRenderer) {
+		return this.getDescriptionHeight(textRenderer) + PROGRESS_BAR_HEIGHT + 8;
 	}
 
 	private int getHeightOfNonEmpty() {
@@ -100,8 +110,8 @@ public class CustomBundleTooltipComponent implements TooltipComponent {
 	}
 
 	private void drawEmptyTooltip(TextRenderer textRenderer, int x, int y, int width, DrawContext context) {
-		drawEmptyDescription(x + this.getXMargin(width), y, textRenderer, context);
-		this.drawProgressBar(x + this.getXMargin(width), y + getDescriptionHeight(textRenderer) + 4, textRenderer, context);
+		this.drawEmptyDescription(x + this.getXMargin(width), y, textRenderer, context);
+		this.drawProgressBar(x + this.getXMargin(width), y + this.getDescriptionHeight(textRenderer) + 4, textRenderer, context);
 	}
 
 	private void drawNonEmptyTooltip(TextRenderer textRenderer, int x, int y, int width, DrawContext context) {
@@ -165,12 +175,12 @@ public class CustomBundleTooltipComponent implements TooltipComponent {
 		}
 	}
 
-	private static void drawEmptyDescription(int x, int y, TextRenderer textRenderer, DrawContext drawContext) {
-		drawContext.drawWrappedTextWithShadow(textRenderer, BUNDLE_EMPTY_DESCRIPTION, x, y, ROW_WIDTH, -5592406);
+	private void drawEmptyDescription(int x, int y, TextRenderer textRenderer, DrawContext drawContext) {
+		drawContext.drawWrappedTextWithShadow(textRenderer, this.emptyDescription, x, y, ROW_WIDTH, -5592406);
 	}
 
-	private static int getDescriptionHeight(TextRenderer textRenderer) {
-		return textRenderer.wrapLines(BUNDLE_EMPTY_DESCRIPTION, ROW_WIDTH).size() * 9;
+	private int getDescriptionHeight(TextRenderer textRenderer) {
+		return textRenderer.wrapLines(this.emptyDescription, ROW_WIDTH).size() * 9;
 	}
 
 	private int getProgressBarFill() {

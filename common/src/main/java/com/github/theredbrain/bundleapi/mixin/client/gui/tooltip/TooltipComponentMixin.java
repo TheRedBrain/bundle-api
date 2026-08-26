@@ -19,7 +19,7 @@ public interface TooltipComponentMixin {
 	)
 	private static void of(TooltipData data, CallbackInfoReturnable<TooltipComponent> cir) {
 		if (data instanceof CustomBundleTooltipData customBundleTooltipData) {
-			cir.setReturnValue(new CustomBundleTooltipComponent(customBundleTooltipData.contents()));
+			cir.setReturnValue(new CustomBundleTooltipComponent(customBundleTooltipData.contents(), customBundleTooltipData.emptyDescription()));
 			cir.cancel();
 		}
 	}
