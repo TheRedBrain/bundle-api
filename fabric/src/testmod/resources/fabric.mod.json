@@ -17,5 +17,7 @@
     ]
   },
   "mixins": [],
-  "depends": {}
+  "depends": {
+    "java": ">=25"
+  }
 }
