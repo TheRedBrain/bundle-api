@@ -4,7 +4,7 @@ import com.github.theredbrain.bundleapi.BundleAPI;
 import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
 import com.github.theredbrain.bundleapi.item.CustomBundleItem;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -14,7 +14,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.resources.Identifier;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +35,7 @@ public class BundleAPITest implements ModInitializer {
 		Item item = factory.apply(new Item.Properties().setId(registryKey));
 
 		if (itemGroup != null) {
-			ItemGroupEvents.modifyEntriesEvent(itemGroup).register(content -> {
+			CreativeModeTabEvents.modifyOutputEvent(itemGroup).register(content -> {
 				content.accept(item);
 			});
 		}

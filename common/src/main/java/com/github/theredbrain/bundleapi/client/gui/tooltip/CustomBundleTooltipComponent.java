@@ -3,11 +3,11 @@ package com.github.theredbrain.bundleapi.client.gui.tooltip;
 import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
 import com.github.theredbrain.bundleapi.item.tooltip.CustomBundleTooltipData;
 import org.apache.commons.lang3.math.Fraction;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
@@ -16,8 +16,9 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Mirrors vanilla {@code BundleTooltipComponent} (1.21.4+ bundle tooltip layout: a grid of
- * 24x24 slots plus an occupancy progress bar), but reads a {@link CustomBundleContentsComponent}.
+ * Mirrors vanilla {@code ClientBundleTooltip} (1.21.4+ bundle tooltip layout: a grid of
+ * 24x24 slots plus an occupancy progress bar, extracted through {@link GuiGraphicsExtractor} since 26.1),
+ * but reads a {@link CustomBundleContentsComponent}.
  * Unlike vanilla bundles, custom bundles have no "selected stack", so no selection highlight is drawn.
  */
 public class CustomBundleTooltipComponent implements ClientTooltipComponent {
@@ -101,7 +102,7 @@ public class CustomBundleTooltipComponent implements ClientTooltipComponent {
 	}
 
 	@Override
-	public void renderImage(Font textRenderer, int x, int y, int width, int height, GuiGraphics context) {
+	public void extractImage(Font textRenderer, int x, int y, int width, int height, GuiGraphicsExtractor context) {
 		if (this.customBundleContents.isEmpty()) {
 			this.drawEmptyTooltip(textRenderer, x, y, width, context);
 		} else {
@@ -109,12 +110,12 @@ public class CustomBundleTooltipComponent implements ClientTooltipComponent {
 		}
 	}
 
-	private void drawEmptyTooltip(Font textRenderer, int x, int y, int width, GuiGraphics context) {
+	private void drawEmptyTooltip(Font textRenderer, int x, int y, int width, GuiGraphicsExtractor context) {
 		this.drawEmptyDescription(x + this.getXMargin(width), y, textRenderer, context);
 		this.drawProgressBar(x + this.getXMargin(width), y + this.getDescriptionHeight(textRenderer) + 4, textRenderer, context);
 	}
 
-	private void drawNonEmptyTooltip(Font textRenderer, int x, int y, int width, GuiGraphics context) {
+	private void drawNonEmptyTooltip(Font textRenderer, int x, int y, int width, GuiGraphicsExtractor context) {
 		boolean bl = this.customBundleContents.size() > MAX_SLOTS_SHOWN;
 		List<ItemStack> list = this.firstStacksInContents(this.getNumberOfStacksShown());
 		int i = x + this.getXMargin(width) + ROW_WIDTH;
@@ -154,29 +155,29 @@ public class CustomBundleTooltipComponent implements ClientTooltipComponent {
 		return this.customBundleContents.stream().skip(items.size()).mapToInt(ItemStack::getCount).sum();
 	}
 
-	private static void drawItem(int index, int x, int y, List<ItemStack> stacks, int seed, Font textRenderer, GuiGraphics drawContext) {
+	private static void drawItem(int index, int x, int y, List<ItemStack> stacks, int seed, Font textRenderer, GuiGraphicsExtractor drawContext) {
 		int i = stacks.size() - index;
 		ItemStack itemStack = stacks.get(i);
 		drawContext.blitSprite(RenderPipelines.GUI_TEXTURED, BUNDLE_SLOT_BACKGROUND_TEXTURE, x, y, SLOT_DIMENSION, SLOT_DIMENSION);
-		drawContext.renderItem(itemStack, x + 4, y + 4, seed);
-		drawContext.renderItemDecorations(textRenderer, itemStack, x + 4, y + 4);
+		drawContext.item(itemStack, x + 4, y + 4, seed);
+		drawContext.itemDecorations(textRenderer, itemStack, x + 4, y + 4);
 	}
 
-	private static void drawExtraItemsCount(int x, int y, int numExtra, Font textRenderer, GuiGraphics drawContext) {
-		drawContext.drawCenteredString(textRenderer, "+" + numExtra, x + 12, y + 10, -1);
+	private static void drawExtraItemsCount(int x, int y, int numExtra, Font textRenderer, GuiGraphicsExtractor drawContext) {
+		drawContext.centeredText(textRenderer, "+" + numExtra, x + 12, y + 10, -1);
 	}
 
-	private void drawProgressBar(int x, int y, Font textRenderer, GuiGraphics drawContext) {
+	private void drawProgressBar(int x, int y, Font textRenderer, GuiGraphicsExtractor drawContext) {
 		drawContext.blitSprite(RenderPipelines.GUI_TEXTURED, this.getProgressBarFillTexture(), x + 1, y, this.getProgressBarFill(), PROGRESS_BAR_HEIGHT);
 		drawContext.blitSprite(RenderPipelines.GUI_TEXTURED, BUNDLE_PROGRESS_BAR_BORDER_TEXTURE, x, y, ROW_WIDTH, PROGRESS_BAR_HEIGHT);
 		Component text = this.getProgressBarLabel();
 		if (text != null) {
-			drawContext.drawCenteredString(textRenderer, text, x + 48, y + 3, -1);
+			drawContext.centeredText(textRenderer, text, x + 48, y + 3, -1);
 		}
 	}
 
-	private void drawEmptyDescription(int x, int y, Font textRenderer, GuiGraphics drawContext) {
-		drawContext.drawWordWrap(textRenderer, this.emptyDescription, x, y, ROW_WIDTH, -5592406);
+	private void drawEmptyDescription(int x, int y, Font textRenderer, GuiGraphicsExtractor drawContext) {
+		drawContext.textWithWordWrap(textRenderer, this.emptyDescription, x, y, ROW_WIDTH, -5592406);
 	}
 
 	private int getDescriptionHeight(Font textRenderer) {
@@ -191,8 +192,7 @@ public class CustomBundleTooltipComponent implements ClientTooltipComponent {
 		return this.customBundleContents.getOccupancy().compareTo(Fraction.ONE) >= 0 ? BUNDLE_PROGRESS_BAR_FULL_TEXTURE : BUNDLE_PROGRESS_BAR_FILL_TEXTURE;
 	}
 
-	@Nullable
-	private Component getProgressBarLabel() {
+	private @Nullable Component getProgressBarLabel() {
 		if (this.customBundleContents.isEmpty()) {
 			return BUNDLE_EMPTY;
 		} else {

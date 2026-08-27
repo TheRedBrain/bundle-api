@@ -4,7 +4,7 @@ import com.github.theredbrain.bundleapi.BundleAPI;
 import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
 import com.github.theredbrain.bundleapi.item.tooltip.CustomBundleTooltipData;
 import org.apache.commons.lang3.math.Fraction;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
@@ -170,7 +170,7 @@ public class CustomBundleItem extends Item {
 		if (customBundleContentsComponent != null && !customBundleContentsComponent.isEmpty()) {
 			stack.set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, new CustomBundleContentsComponent.Builder(customBundleContentsComponent).clear().build());
 			if (player instanceof ServerPlayer) {
-				customBundleContentsComponent.iterateCopy().forEach(stackx -> player.drop(stackx, true));
+				customBundleContentsComponent.stream().forEach(stackx -> player.drop(stackx, true));
 			}
 
 			return true;
@@ -192,7 +192,7 @@ public class CustomBundleItem extends Item {
 		CustomBundleContentsComponent customBundleContentsComponent = entity.getItem().get(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 		if (customBundleContentsComponent != null) {
 			entity.getItem().set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, new CustomBundleContentsComponent.Builder(customBundleContentsComponent).clear().build());
-			ItemUtils.onContainerDestroyed(entity, customBundleContentsComponent.iterateCopy());
+			ItemUtils.onContainerDestroyed(entity, customBundleContentsComponent.stream());
 		}
 	}
 
