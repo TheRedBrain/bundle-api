@@ -1,5 +1,6 @@
 # 1.1.1
 
+- Fix a class-initialisation cycle that could deadlock under parallel registry loading (NeoForge).
 - Minecraft 26.1.2 support (Java 25).
 - Bundle contents are now stored as `ItemStackTemplate`, mirroring vanilla `BundleContents`.
 - `Content.items()` returns `List<ItemStackTemplate>`; use `stream()` / `iterateCopy()` for stacks, `iterate()` is deprecated.
