@@ -1,23 +1,9 @@
 package com.github.theredbrain.bundleapi.component.type;
 
-import com.github.theredbrain.bundleapi.BundleAPI;
 import com.github.theredbrain.bundleapi.registry.BundleAPIDataComponentTypes;
 import com.google.common.collect.Lists;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.entity.BeehiveBlockEntity;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.BeesComponent;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.tooltip.TooltipData;
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.tag.TagKey;
-import net.minecraft.screen.slot.Slot;
 import org.apache.commons.lang3.math.Fraction;
 import org.jspecify.annotations.Nullable;
 
@@ -25,13 +11,26 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.Bees;
+import net.minecraft.world.level.block.entity.BeehiveBlockEntity;
 
-public final class CustomBundleContentsComponent implements TooltipData {
+public final class CustomBundleContentsComponent implements TooltipComponent {
 	public static final CustomBundleContentsComponent DEFAULT = new CustomBundleContentsComponent(List.of(), Optional.empty(), 1, true);
 	public static final Codec<CustomBundleContentsComponent> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
-							CustomBundleContentsComponent.Content.CODEC.fieldOf("content").forGetter(component -> component.content),
-							TagKey.codec(RegistryKeys.ITEM).optionalFieldOf("tag").forGetter(component -> component.tag),
+							Content.CODEC.fieldOf("content").forGetter(component -> component.content),
+							TagKey.hashedCodec(Registries.ITEM).optionalFieldOf("tag").forGetter(component -> component.tag),
 							Codec.INT.optionalFieldOf("size_multiplier", 1).forGetter(component -> component.size_multiplier),
 							Codec.BOOL.optionalFieldOf("enable_slot_selection", true).forGetter(component -> component.enable_slot_selection)/*,
 							SoundEvent.ENTRY_CODEC.optionalFieldOf("drop_contents_sound").forGetter(component -> component.drop_contents_sound),
@@ -41,14 +40,14 @@ public final class CustomBundleContentsComponent implements TooltipData {
 					)
 					.apply(instance, CustomBundleContentsComponent::new)
 	);
-	public static final PacketCodec<RegistryByteBuf, CustomBundleContentsComponent> PACKET_CODEC = PacketCodec.tuple(
-			CustomBundleContentsComponent.Content.PACKET_CODEC,
+	public static final StreamCodec<RegistryFriendlyByteBuf, CustomBundleContentsComponent> PACKET_CODEC = StreamCodec.composite(
+			Content.PACKET_CODEC,
 			component -> component.content,
-			TagKey.packetCodec(RegistryKeys.ITEM).collect(PacketCodecs::optional),
+			TagKey.streamCodec(Registries.ITEM).apply(ByteBufCodecs::optional),
 			component -> component.tag,
-			PacketCodecs.VAR_INT,
+			ByteBufCodecs.VAR_INT,
 			component -> component.size_multiplier,
-			PacketCodecs.BOOLEAN,
+			ByteBufCodecs.BOOL,
 			component -> component.enable_slot_selection,
 			/*SoundEvent.ENTRY_PACKET_CODEC.collect(PacketCodecs::optional),
 			component -> component.drop_contents_sound,
@@ -134,7 +133,7 @@ public final class CustomBundleContentsComponent implements TooltipData {
 	) {
 		this(
 				new Content(stacks),
-				calculateOccupancy(stacks, size_multiplier),
+				computeContentWeight(stacks, size_multiplier),
 				-1,
 				tag,
 				size_multiplier,
@@ -158,7 +157,7 @@ public final class CustomBundleContentsComponent implements TooltipData {
 	) {
 		this(
 				content,
-				calculateOccupancy(content.stacks, size_multiplier),
+				computeContentWeight(content.stacks, size_multiplier),
 				-1,
 				tag,
 				size_multiplier,
@@ -191,36 +190,36 @@ public final class CustomBundleContentsComponent implements TooltipData {
 		);
 	}
 
-	public static CustomBundleContentsComponent.Builder builder() {
-		return new CustomBundleContentsComponent.Builder(DEFAULT);
+	public static Mutable builder() {
+		return new Mutable(DEFAULT);
 	}
 
-	private static Fraction calculateOccupancy(List<ItemStack> stacks, int size_multiplier) {
+	private static Fraction computeContentWeight(List<ItemStack> stacks, int size_multiplier) {
 		Fraction fraction = Fraction.ZERO;
 
 		for (ItemStack itemStack : stacks) {
-			fraction = fraction.add(getOccupancy(itemStack, size_multiplier).multiplyBy(Fraction.getFraction(itemStack.getCount(), 1)));
+			fraction = fraction.add(getWeight(itemStack, size_multiplier).multiplyBy(Fraction.getFraction(itemStack.getCount(), 1)));
 		}
 
 		return fraction;
 	}
 
-	static Fraction getOccupancy(ItemStack stack, int size_multiplier) {
+	static Fraction getWeight(ItemStack stack, int size_multiplier) {
 		CustomBundleContentsComponent customBundleContentsComponent = stack.get(BundleAPIDataComponentTypes.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 		if (customBundleContentsComponent != null) {
-			return NESTED_BUNDLE_OCCUPANCY.add(customBundleContentsComponent.getOccupancy());
+			return NESTED_BUNDLE_OCCUPANCY.add(customBundleContentsComponent.weight());
 		} else {
-			List<BeehiveBlockEntity.BeeData> list = stack.getOrDefault(DataComponentTypes.BEES, BeesComponent.DEFAULT).bees();
-			return !list.isEmpty() ? Fraction.ONE : Fraction.getFraction(1, stack.getMaxCount() * size_multiplier);
+			List<BeehiveBlockEntity.Occupant> list = stack.getOrDefault(DataComponents.BEES, Bees.EMPTY).bees();
+			return !list.isEmpty() ? Fraction.ONE : Fraction.getFraction(1, stack.getMaxStackSize() * size_multiplier);
 		}
 	}
 
 
-	public static boolean canBeBundled(Optional<TagKey<Item>> tag, ItemStack stack) {
-		return !stack.isEmpty() && stack.getItem().canBeNested() && (tag.isEmpty() || stack.isIn(tag.get()));
+	public static boolean canItemBeInBundle(Optional<TagKey<Item>> tag, ItemStack stack) {
+		return !stack.isEmpty() && stack.getItem().canFitInsideContainerItems() && (tag.isEmpty() || stack.is(tag.get()));
 	}
 
-	public int getNumberOfStacksShown() {
+	public int getNumberOfItemsToShow() {
 		int i = this.size();
 		int j = i > 12 ? 11 : 12;
 		int k = i % 4;
@@ -228,19 +227,19 @@ public final class CustomBundleContentsComponent implements TooltipData {
 		return Math.min(i, j - l);
 	}
 
-	public ItemStack get(int index) {
+	public ItemStack getItemUnsafe(int index) {
 		return (ItemStack) this.content.stacks.get(index);
 	}
 
-	public Stream<ItemStack> stream() {
+	public Stream<ItemStack> itemCopyStream() {
 		return this.content.stacks.stream().map(ItemStack::copy);
 	}
 
-	public Iterable<ItemStack> iterate() {
+	public Iterable<ItemStack> items() {
 		return this.content.stacks;
 	}
 
-	public Iterable<ItemStack> iterateCopy() {
+	public Iterable<ItemStack> itemsCopy() {
 		return Lists.<ItemStack, ItemStack>transform(this.content.stacks, ItemStack::copy);
 	}
 
@@ -252,7 +251,7 @@ public final class CustomBundleContentsComponent implements TooltipData {
 		return this.size_multiplier;
 	}
 
-	public Fraction getOccupancy() {
+	public Fraction weight() {
 		return this.occupancy;
 	}
 
@@ -260,56 +259,66 @@ public final class CustomBundleContentsComponent implements TooltipData {
 		return this.content.stacks.isEmpty();
 	}
 
-	public int getSelectedStackIndex() {
+	public int getSelectedItem() {
 		return this.selectedStackIndex;
 	}
 
-	public boolean hasSelectedStack() {
+	public boolean hasSelectedItem() {
 		return this.selectedStackIndex != -1;
 	}
 
 	@Override
-	public boolean equals(Object o) {
-		if (this == o) {
+	public boolean equals(Object object) {
+		if (this == object) {
 			return true;
 		}
-		if (!(o instanceof CustomBundleContentsComponent customBundleContentsComponent)) {
+		if (!(object instanceof CustomBundleContentsComponent customBundleContentsComponent)) {
 			return false;
 		}
-		return this.occupancy.equals(customBundleContentsComponent.occupancy) && ItemStack.stacksEqual(this.content.stacks, customBundleContentsComponent.content.stacks);
+		return this.occupancy.equals(customBundleContentsComponent.occupancy) && ItemStack.listMatches(this.content.stacks, customBundleContentsComponent.content.stacks);
 	}
 
-	public static class Builder {
-		private CustomBundleContentsComponent.Content content;
-		private Fraction occupancy;
+	@Override
+	public int hashCode() {
+		return ItemStack.hashStackList(this.content.stacks);
+	}
+
+	@Override
+	public String toString() {
+		return "CustomBundleContents" + String.valueOf(this.content.stacks);
+	}
+
+	public static class Mutable {
+		private Content content;
+		private Fraction weight;
 		private int selectedStackIndex;
 		private Optional<TagKey<Item>> tag;
 		private int size_multiplier;
 		private boolean enable_slot_selection;
 
-		public Builder(CustomBundleContentsComponent base) {
-			this.content = new CustomBundleContentsComponent.Content(base.content.stacks);
-			this.occupancy = base.occupancy;
+		public Mutable(CustomBundleContentsComponent base) {
+			this.content = new Content(base.content.stacks);
+			this.weight = base.occupancy;
 			this.selectedStackIndex = base.selectedStackIndex;
 			this.tag = base.tag;
 			this.size_multiplier = base.size_multiplier;
 			this.enable_slot_selection = base.enable_slot_selection;
 		}
 
-		public CustomBundleContentsComponent.Builder clear() {
+		public Mutable clearItems() {
 			this.content.stacks.clear();
-			this.occupancy = Fraction.ZERO;
+			this.weight = Fraction.ZERO;
 			this.selectedStackIndex = -1;
 			return this;
 		}
 
-		private int getInsertionIndex(ItemStack stack) {
+		private int findStackIndex(ItemStack stack) {
 			if (!stack.isStackable()) {
 				return -1;
 			}
 
 			for (int i = 0; i < this.content.stacks.size(); i++) {
-				if (ItemStack.areItemsAndComponentsEqual(this.content.stacks.get(i), stack)) {
+				if (ItemStack.isSameItemSameComponents(this.content.stacks.get(i), stack)) {
 					return i;
 				}
 			}
@@ -317,39 +326,25 @@ public final class CustomBundleContentsComponent implements TooltipData {
 			return -1;
 		}
 
-//		private int addInternal(ItemStack stack) {
-//			if (!stack.isStackable()) {
-//				return -1;
-//			} else {
-//				for (int i = 0; i < this.content.stacks.size(); i++) {
-//					if (ItemStack.areItemsAndComponentsEqual((ItemStack) this.content.stacks.get(i), stack) && this.content.stacks.get(i).getCount() < this.content.stacks.get(i).getMaxCount()) {
-//						return i;
-//					}
-//				}
-//
-//				return -1;
-//			}
-//		}
-
-		private int getMaxAllowed(ItemStack stack) {
-			Fraction fraction = Fraction.ONE.subtract(this.occupancy);
-			return Math.max(fraction.divideBy(CustomBundleContentsComponent.getOccupancy(stack, this.size_multiplier)).intValue(), 0);
+		private int getMaxAmountToAdd(ItemStack stack) {
+			Fraction fraction = Fraction.ONE.subtract(this.weight);
+			return Math.max(fraction.divideBy(CustomBundleContentsComponent.getWeight(stack, this.size_multiplier)).intValue(), 0);
 		}
 
-		public int add(ItemStack stack) {
-			if (!CustomBundleContentsComponent.canBeBundled(this.tag, stack)) {
+		public int tryInsert(ItemStack stack) {
+			if (!CustomBundleContentsComponent.canItemBeInBundle(this.tag, stack)) {
 				return 0;
 			}
-			int i = Math.min(stack.getCount(), this.getMaxAllowed(stack));
+			int i = Math.min(stack.getCount(), this.getMaxAmountToAdd(stack));
 			if (i == 0) {
 				return 0;
 			}
-			this.occupancy = this.occupancy.add(CustomBundleContentsComponent.getOccupancy(stack, this.size_multiplier).multiplyBy(Fraction.getFraction(i, 1)));
-			int j = this.getInsertionIndex(stack);
+			this.weight = this.weight.add(CustomBundleContentsComponent.getWeight(stack, this.size_multiplier).multiplyBy(Fraction.getFraction(i, 1)));
+			int j = this.findStackIndex(stack);
 			if (j != -1) {
-				ItemStack itemStack = (ItemStack) this.content.stacks.remove(j);
+				ItemStack itemStack = this.content.stacks.remove(j);
 				ItemStack itemStack2 = itemStack.copyWithCount(itemStack.getCount() + i);
-				stack.decrement(i);
+				stack.shrink(i);
 				this.content.stacks.add(0, itemStack2);
 			} else {
 				this.content.stacks.add(0, stack.split(i));
@@ -358,17 +353,17 @@ public final class CustomBundleContentsComponent implements TooltipData {
 			return i;
 		}
 
-		public int add(Slot slot, PlayerEntity player) {
-			ItemStack itemStack = slot.getStack();
-			int i = this.getMaxAllowed(itemStack);
-			return this.add(slot.takeStackRange(itemStack.getCount(), i, player));
+		public int tryTransfer(Slot slot, Player player) {
+			ItemStack itemStack = slot.getItem();
+			int i = this.getMaxAmountToAdd(itemStack);
+			return this.tryInsert(slot.safeTake(itemStack.getCount(), i, player));
 		}
 
-		public void setSelectedStackIndex(int selectedStackIndex) {
-			this.selectedStackIndex = this.selectedStackIndex != selectedStackIndex && !this.isOutOfBounds(selectedStackIndex) ? selectedStackIndex : -1;
+		public void toggleSelectedItem(int i) {
+			this.selectedStackIndex = this.selectedStackIndex != i && !this.indexIsOutsideAllowedBounds(i) ? i : -1;
 		}
 
-		private boolean isOutOfBounds(int index) {
+		private boolean indexIsOutsideAllowedBounds(int index) {
 			return !this.enable_slot_selection || index < 0 || index >= this.content.stacks.size();
 		}
 
@@ -377,43 +372,43 @@ public final class CustomBundleContentsComponent implements TooltipData {
 				return null;
 			}
 
-			int i = this.isOutOfBounds(this.selectedStackIndex) ? 0 : this.selectedStackIndex;
+			int i = this.indexIsOutsideAllowedBounds(this.selectedStackIndex) ? 0 : this.selectedStackIndex;
 			ItemStack itemStack = this.content.stacks.remove(i).copy();
-			this.occupancy = this.occupancy.subtract(CustomBundleContentsComponent.getOccupancy(itemStack, this.size_multiplier).multiplyBy(Fraction.getFraction(itemStack.getCount(), 1)));
-			this.setSelectedStackIndex(-1);
+			this.weight = this.weight.subtract(CustomBundleContentsComponent.getWeight(itemStack, this.size_multiplier).multiplyBy(Fraction.getFraction(itemStack.getCount(), 1)));
+			this.toggleSelectedItem(-1);
 			return itemStack;
 		}
 
-		public Fraction getOccupancy() {
-			return this.occupancy;
+		public Fraction weight() {
+			return this.weight;
 		}
 
-		public CustomBundleContentsComponent.Builder size_multiplier(int size_multiplier) {
+		public Mutable size_multiplier(int size_multiplier) {
 			this.size_multiplier = size_multiplier;
 			return this;
 		}
 
-		public Builder tag(Optional<TagKey<Item>> tag) {
+		public Mutable tag(Optional<TagKey<Item>> tag) {
 			this.tag = tag;
 			return this;
 		}
 
-		public CustomBundleContentsComponent.Builder enable_slot_selection(boolean enable_slot_selection) {
+		public Mutable enable_slot_selection(boolean enable_slot_selection) {
 			this.enable_slot_selection = enable_slot_selection;
 			return this;
 		}
 
-		public CustomBundleContentsComponent build() {
-			return new CustomBundleContentsComponent(List.copyOf(this.content.stacks), this.occupancy, this.tag, this.size_multiplier, this.enable_slot_selection);
+		public CustomBundleContentsComponent toImmutable() {
+			return new CustomBundleContentsComponent(List.copyOf(this.content.stacks), this.weight, this.tag, this.size_multiplier, this.enable_slot_selection);
 		}
 	}
 
 	public record Content(List<ItemStack> stacks) {
 		public static final Content DEFAULT = new Content(List.of());
 		public static final Codec<Content> CODEC = ItemStack.CODEC.listOf().xmap(Content::new, component -> component.stacks);
-		public static final PacketCodec<RegistryByteBuf, Content> PACKET_CODEC = ItemStack.PACKET_CODEC
-				.collect(PacketCodecs.toList())
-				.xmap(Content::new, content -> content.stacks);
+		public static final StreamCodec<RegistryFriendlyByteBuf, Content> PACKET_CODEC = ItemStack.STREAM_CODEC
+				.apply(ByteBufCodecs.list())
+				.map(Content::new, content -> content.stacks);
 
 		public Content(List<ItemStack> stacks) {
 			this.stacks = new ArrayList<ItemStack>(stacks);

@@ -4,45 +4,45 @@ import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsCompo
 import com.github.theredbrain.bundleapi.registry.BundleAPIDataComponentTypes;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.tooltip.TooltipSubmenuHandler;
-import net.minecraft.client.input.Scroller;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.c2s.play.BundleItemSelectedC2SPacket;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.screen.slot.SlotActionType;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.ScrollWheelHandler;
+import net.minecraft.client.gui.ItemSlotMouseAction;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.network.protocol.game.ServerboundSelectBundleItemPacket;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import org.joml.Vector2i;
 
 @Environment(EnvType.CLIENT)
-public class CustomBundleTooltipSubmenuHandler implements TooltipSubmenuHandler {
-	private final MinecraftClient client;
-	private final Scroller scroller;
+public class CustomBundleTooltipSubmenuHandler implements ItemSlotMouseAction {
+	private final Minecraft client;
+	private final ScrollWheelHandler scroller;
 
-	public CustomBundleTooltipSubmenuHandler(MinecraftClient client) {
+	public CustomBundleTooltipSubmenuHandler(Minecraft client) {
 		this.client = client;
-		this.scroller = new Scroller();
+		this.scroller = new ScrollWheelHandler();
 	}
 
 	@Override
-	public boolean isApplicableTo(Slot slot) {
-		return slot.getStack().contains(BundleAPIDataComponentTypes.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
+	public boolean matches(Slot slot) {
+		return slot.getItem().has(BundleAPIDataComponentTypes.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 	}
 
 	@Override
-	public boolean onScroll(double horizontal, double vertical, int slotId, ItemStack item) {
+	public boolean onMouseScrolled(double horizontal, double vertical, int slotId, ItemStack item) {
 		CustomBundleContentsComponent customBundleContentsComponent = item.getOrDefault(BundleAPIDataComponentTypes.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.DEFAULT);
 		// TODO disable scrolling
-		int i = customBundleContentsComponent.getNumberOfStacksShown();
+		int i = customBundleContentsComponent.getNumberOfItemsToShow();
 		if (i == 0) {
 			return false;
 		}
 
-		Vector2i vector2i = this.scroller.update(horizontal, vertical);
+		Vector2i vector2i = this.scroller.onMouseScroll(horizontal, vertical);
 		int j = vector2i.y == 0 ? -vector2i.x : vector2i.y;
 		if (j != 0) {
-			int k = customBundleContentsComponent.getSelectedStackIndex();
-			int l = Scroller.scrollCycling(j, k, i);
+			int k = customBundleContentsComponent.getSelectedItem();
+			int l = ScrollWheelHandler.getNextScrollWheelSelection(j, k, i);
 			if (k != l) {
 				this.sendPacket(item, slotId, l);
 			}
@@ -52,29 +52,27 @@ public class CustomBundleTooltipSubmenuHandler implements TooltipSubmenuHandler 
 	}
 
 	@Override
-	public void reset(Slot slot) {
-		this.reset(slot.getStack(), slot.id);
+	public void onStopHovering(Slot slot) {
+		this.reset(slot.getItem(), slot.index);
 	}
 
 	@Override
-	public void onMouseClick(Slot slot, SlotActionType actionType) {
-		if (actionType == SlotActionType.QUICK_MOVE || actionType == SlotActionType.SWAP) {
-			this.reset(slot.getStack(), slot.id);
+	public void onSlotClicked(Slot slot, ClickType actionType) {
+		if (actionType == ClickType.QUICK_MOVE || actionType == ClickType.SWAP) {
+			this.reset(slot.getItem(), slot.index);
 		}
 	}
 
 	private void sendPacket(ItemStack item, int slotId, int selectedItemIndex) {
 		CustomBundleContentsComponent customBundleContentsComponent = item.getOrDefault(BundleAPIDataComponentTypes.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.DEFAULT);
 
-		if (this.client.getNetworkHandler() != null && selectedItemIndex < customBundleContentsComponent.getNumberOfStacksShown()) {
-			ClientPlayNetworkHandler clientPlayNetworkHandler = this.client.getNetworkHandler();
-//			BundleItem.setSelectedStackIndex(item, selectedItemIndex);
-			CustomBundleContentsComponent.Builder builder = new CustomBundleContentsComponent.Builder(customBundleContentsComponent);
-			builder.setSelectedStackIndex(selectedItemIndex);
-			item.set(BundleAPIDataComponentTypes.CUSTOM_BUNDLE_CONTENTS_COMPONENT, builder.build());
+		if (this.client.getConnection() != null && selectedItemIndex < customBundleContentsComponent.getNumberOfItemsToShow()) {
+			ClientPacketListener clientPlayNetworkHandler = this.client.getConnection();
+			CustomBundleContentsComponent.Mutable mutable = new CustomBundleContentsComponent.Mutable(customBundleContentsComponent);
+			mutable.toggleSelectedItem(selectedItemIndex);
+			item.set(BundleAPIDataComponentTypes.CUSTOM_BUNDLE_CONTENTS_COMPONENT, mutable.toImmutable());
 
-			// TODO send custom packet
-			clientPlayNetworkHandler.sendPacket(new BundleItemSelectedC2SPacket(slotId, selectedItemIndex));
+			clientPlayNetworkHandler.send(new ServerboundSelectBundleItemPacket(slotId, selectedItemIndex));
 		}
 	}
 

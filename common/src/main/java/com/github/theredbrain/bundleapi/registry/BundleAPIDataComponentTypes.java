@@ -2,15 +2,15 @@ package com.github.theredbrain.bundleapi.registry;
 
 import com.github.theredbrain.bundleapi.BundleAPI;
 import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
-import net.minecraft.component.ComponentType;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 public class BundleAPIDataComponentTypes {
-	public static ComponentType<CustomBundleContentsComponent> CUSTOM_BUNDLE_CONTENTS_COMPONENT = Registry.register(
-			Registries.DATA_COMPONENT_TYPE,
+	public static DataComponentType<CustomBundleContentsComponent> CUSTOM_BUNDLE_CONTENTS_COMPONENT = Registry.register(
+			BuiltInRegistries.DATA_COMPONENT_TYPE,
 			BundleAPI.identifier("custom_bundle_contents"),
-			ComponentType.<CustomBundleContentsComponent>builder().codec(CustomBundleContentsComponent.CODEC).packetCodec(CustomBundleContentsComponent.PACKET_CODEC).cache().build()
+			DataComponentType.<CustomBundleContentsComponent>builder().persistent(CustomBundleContentsComponent.CODEC).networkSynchronized(CustomBundleContentsComponent.PACKET_CODEC).cacheEncoding().build()
 	);
 
 	public static void bootstrap() {

@@ -1,40 +1,45 @@
 package com.github.theredbrain.bundleapi.registry;
 
 import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
-import net.minecraft.component.ComponentType;
-import net.minecraft.item.ItemStack;
-import net.minecraft.loot.ContainerComponentModifier;
-import net.minecraft.loot.ContainerComponentModifiers;
 
+import java.util.Objects;
 import java.util.stream.Stream;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.loot.ContainerComponentManipulator;
+import net.minecraft.world.level.storage.loot.ContainerComponentManipulators;
 
 public class BundleAPIContainerComponentModifiers {
-	public static ContainerComponentModifier<CustomBundleContentsComponent> CUSTOM_BUNDLE_CONTENTS_CONTAINER_COMPONENT_MODIFIER;
+	public static ContainerComponentManipulator<CustomBundleContentsComponent> CUSTOM_BUNDLE_CONTENTS_CONTAINER_COMPONENT_MODIFIER;
 
 	public static void bootstrap() {
 	}
 
 	static {
-		CUSTOM_BUNDLE_CONTENTS_CONTAINER_COMPONENT_MODIFIER = new ContainerComponentModifier<CustomBundleContentsComponent>() {
+		CUSTOM_BUNDLE_CONTENTS_CONTAINER_COMPONENT_MODIFIER = new ContainerComponentManipulator<CustomBundleContentsComponent>() {
 			@Override
-			public ComponentType<CustomBundleContentsComponent> getComponentType() {
+			public DataComponentType<CustomBundleContentsComponent> type() {
 				return BundleAPIDataComponentTypes.CUSTOM_BUNDLE_CONTENTS_COMPONENT;
 			}
 
-			public CustomBundleContentsComponent getDefault() {
+			@Override
+			public CustomBundleContentsComponent empty() {
 				return CustomBundleContentsComponent.DEFAULT;
 			}
 
-			public Stream<ItemStack> stream(CustomBundleContentsComponent customBundleContentsComponent) {
-				return customBundleContentsComponent.stream();
+			@Override
+			public Stream<ItemStack> getContents(CustomBundleContentsComponent customBundleContentsComponent) {
+				return customBundleContentsComponent.itemCopyStream();
 			}
 
-			public CustomBundleContentsComponent apply(CustomBundleContentsComponent customBundleContentsComponent, Stream<ItemStack> stream) {
-				CustomBundleContentsComponent.Builder builder = new CustomBundleContentsComponent.Builder(customBundleContentsComponent).clear();
-				stream.forEach(builder::add);
-				return builder.build();
+			@Override
+			public CustomBundleContentsComponent setContents(CustomBundleContentsComponent customBundleContentsComponent, Stream<ItemStack> stream) {
+				CustomBundleContentsComponent.Mutable mutable = new CustomBundleContentsComponent.Mutable(customBundleContentsComponent).clearItems();
+				Objects.requireNonNull(mutable);
+				stream.forEach(mutable::tryInsert);
+				return mutable.toImmutable();
 			}
 		};
-		ContainerComponentModifiers.TYPE_TO_MODIFIER.put(BundleAPIDataComponentTypes.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CUSTOM_BUNDLE_CONTENTS_CONTAINER_COMPONENT_MODIFIER);
+		ContainerComponentManipulators.ALL_MANIPULATORS.put(BundleAPIDataComponentTypes.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CUSTOM_BUNDLE_CONTENTS_CONTAINER_COMPONENT_MODIFIER);
 	}
 }

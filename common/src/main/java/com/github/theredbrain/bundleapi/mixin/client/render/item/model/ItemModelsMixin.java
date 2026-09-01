@@ -5,10 +5,10 @@ import com.github.theredbrain.bundleapi.client.render.item.model.CustomBundleSel
 import com.mojang.serialization.MapCodec;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.render.item.model.ItemModel;
-import net.minecraft.client.render.item.model.ItemModelTypes;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.dynamic.Codecs;
+import net.minecraft.client.renderer.item.ItemModel;
+import net.minecraft.client.renderer.item.ItemModels;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.ExtraCodecs;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -17,11 +17,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Environment(EnvType.CLIENT)
-@Mixin(ItemModelTypes.class)
-public class ItemModelTypesMixin {
+@Mixin(ItemModels.class)
+public class ItemModelsMixin {
 	@Shadow
 	@Final
-	private static Codecs.IdMapper<Identifier, MapCodec<? extends ItemModel.Unbaked>> ID_MAPPER;
+	private static ExtraCodecs.LateBoundIdMapper<Identifier, MapCodec<? extends ItemModel.Unbaked>> ID_MAPPER;
 
 	@Inject(method = "bootstrap", at = @At("TAIL"))
 	private static void bundleapi$bootstrap(CallbackInfo ci) {
