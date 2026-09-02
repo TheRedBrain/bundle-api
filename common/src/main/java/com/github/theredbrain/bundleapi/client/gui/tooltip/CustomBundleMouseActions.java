@@ -1,5 +1,6 @@
 package com.github.theredbrain.bundleapi.client.gui.tooltip;
 
+import com.github.theredbrain.bundleapi.BundleAPI;
 import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
 import com.github.theredbrain.bundleapi.registry.BundleAPIDataComponentTypes;
 import net.fabricmc.api.EnvType;
@@ -15,11 +16,11 @@ import net.minecraft.world.item.ItemStack;
 import org.joml.Vector2i;
 
 @Environment(EnvType.CLIENT)
-public class CustomBundleTooltipSubmenuHandler implements ItemSlotMouseAction {
+public class CustomBundleMouseActions implements ItemSlotMouseAction {
 	private final Minecraft client;
 	private final ScrollWheelHandler scroller;
 
-	public CustomBundleTooltipSubmenuHandler(Minecraft client) {
+	public CustomBundleMouseActions(Minecraft client) {
 		this.client = client;
 		this.scroller = new ScrollWheelHandler();
 	}
@@ -35,6 +36,7 @@ public class CustomBundleTooltipSubmenuHandler implements ItemSlotMouseAction {
 		// TODO disable scrolling
 		int i = customBundleContentsComponent.getNumberOfItemsToShow();
 		if (i == 0) {
+			BundleAPI.LOGGER.info("CustomBundleMouseActions onMouseScrolled i == 0");
 			return false;
 		}
 
@@ -44,7 +46,8 @@ public class CustomBundleTooltipSubmenuHandler implements ItemSlotMouseAction {
 			int k = customBundleContentsComponent.getSelectedItem();
 			int l = ScrollWheelHandler.getNextScrollWheelSelection(j, k, i);
 			if (k != l) {
-				this.sendPacket(item, slotId, l);
+				BundleAPI.LOGGER.info("CustomBundleMouseActions onMouseScrolled k != l");
+				this.toggleSelectedBundleItem(item, slotId, l);
 			}
 		}
 
@@ -53,30 +56,31 @@ public class CustomBundleTooltipSubmenuHandler implements ItemSlotMouseAction {
 
 	@Override
 	public void onStopHovering(Slot slot) {
-		this.reset(slot.getItem(), slot.index);
+		this.unselectedBundleItem(slot.getItem(), slot.index);
 	}
 
 	@Override
 	public void onSlotClicked(Slot slot, ClickType actionType) {
 		if (actionType == ClickType.QUICK_MOVE || actionType == ClickType.SWAP) {
-			this.reset(slot.getItem(), slot.index);
+			this.unselectedBundleItem(slot.getItem(), slot.index);
 		}
 	}
 
-	private void sendPacket(ItemStack item, int slotId, int selectedItemIndex) {
-		CustomBundleContentsComponent customBundleContentsComponent = item.getOrDefault(BundleAPIDataComponentTypes.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.DEFAULT);
+	private void toggleSelectedBundleItem(ItemStack item, int slotId, int selectedItemIndex) {
+		CustomBundleContentsComponent customBundleContentsComponent = item.get(BundleAPIDataComponentTypes.CUSTOM_BUNDLE_CONTENTS_COMPONENT);
 
-		if (this.client.getConnection() != null && selectedItemIndex < customBundleContentsComponent.getNumberOfItemsToShow()) {
+		if (this.client.getConnection() != null && customBundleContentsComponent != null && selectedItemIndex < customBundleContentsComponent.getNumberOfItemsToShow()) {
 			ClientPacketListener clientPlayNetworkHandler = this.client.getConnection();
 			CustomBundleContentsComponent.Mutable mutable = new CustomBundleContentsComponent.Mutable(customBundleContentsComponent);
 			mutable.toggleSelectedItem(selectedItemIndex);
 			item.set(BundleAPIDataComponentTypes.CUSTOM_BUNDLE_CONTENTS_COMPONENT, mutable.toImmutable());
 
+			BundleAPI.LOGGER.info("CustomBundleMouseActions toggleSelectedBundleItem");
 			clientPlayNetworkHandler.send(new ServerboundSelectBundleItemPacket(slotId, selectedItemIndex));
 		}
 	}
 
-	public void reset(ItemStack item, int slotId) {
-		this.sendPacket(item, slotId, -1);
+	public void unselectedBundleItem(ItemStack item, int slotId) {
+		this.toggleSelectedBundleItem(item, slotId, -1);
 	}
 }

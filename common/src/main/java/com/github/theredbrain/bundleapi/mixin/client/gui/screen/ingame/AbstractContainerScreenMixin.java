@@ -1,6 +1,8 @@
 package com.github.theredbrain.bundleapi.mixin.client.gui.screen.ingame;
 
-import com.github.theredbrain.bundleapi.client.gui.tooltip.CustomBundleTooltipSubmenuHandler;
+import com.github.theredbrain.bundleapi.client.gui.tooltip.CustomBundleMouseActions;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.ItemSlotMouseAction;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -11,6 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+@Environment(EnvType.CLIENT)
 @Mixin(AbstractContainerScreen.class)
 public abstract class AbstractContainerScreenMixin extends Screen {
 
@@ -23,6 +26,6 @@ public abstract class AbstractContainerScreenMixin extends Screen {
 
 	@Inject(method = "init()V", at = @At("TAIL"))
 	protected void bundleapi$init(CallbackInfo ci) {
-		this.addItemSlotMouseAction(new CustomBundleTooltipSubmenuHandler(this.minecraft));
+		this.addItemSlotMouseAction(new CustomBundleMouseActions(this.minecraft));
 	}
 }

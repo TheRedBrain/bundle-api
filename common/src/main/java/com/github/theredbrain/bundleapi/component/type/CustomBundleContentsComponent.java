@@ -66,7 +66,7 @@ public final class CustomBundleContentsComponent implements TooltipComponent {
 	final Optional<TagKey<Item>> tag;
 	final int size_multiplier;
 	final boolean enable_slot_selection;
-	final int selectedStackIndex;
+	final int selectedItem;
 		/*final Optional<RegistryEntry<SoundEvent>> drop_contents_sound;
 		final Optional<RegistryEntry<SoundEvent>> insert_sound;
 		final Optional<RegistryEntry<SoundEvent>> insert_fail_sound;
@@ -75,7 +75,7 @@ public final class CustomBundleContentsComponent implements TooltipComponent {
 	public CustomBundleContentsComponent(
 			Content content,
 			Fraction occupancy,
-			int selectedStackIndex,
+			int selectedItem,
 			Optional<TagKey<Item>> tag,
 			int size_multiplier,
 			boolean enable_slot_selection/*,
@@ -86,7 +86,7 @@ public final class CustomBundleContentsComponent implements TooltipComponent {
 	) {
 		this.content = content;
 		this.occupancy = occupancy;
-		this.selectedStackIndex = selectedStackIndex;
+		this.selectedItem = selectedItem;
 		this.tag = tag;
 		this.size_multiplier = size_multiplier;
 		this.enable_slot_selection = enable_slot_selection;
@@ -260,11 +260,11 @@ public final class CustomBundleContentsComponent implements TooltipComponent {
 	}
 
 	public int getSelectedItem() {
-		return this.selectedStackIndex;
+		return this.selectedItem;
 	}
 
 	public boolean hasSelectedItem() {
-		return this.selectedStackIndex != -1;
+		return this.selectedItem != -1;
 	}
 
 	@Override
@@ -299,7 +299,7 @@ public final class CustomBundleContentsComponent implements TooltipComponent {
 		public Mutable(CustomBundleContentsComponent base) {
 			this.content = new Content(base.content.stacks);
 			this.weight = base.occupancy;
-			this.selectedStackIndex = base.selectedStackIndex;
+			this.selectedStackIndex = base.selectedItem;
 			this.tag = base.tag;
 			this.size_multiplier = base.size_multiplier;
 			this.enable_slot_selection = base.enable_slot_selection;
