@@ -5,24 +5,24 @@ import com.github.theredbrain.bundleapi.registry.BundleAPIDataComponentTypes;
 import com.mojang.serialization.MapCodec;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.item.properties.numeric.RangeSelectItemModelProperty;
-import net.minecraft.world.entity.ItemOwner;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.render.item.property.numeric.NumericProperty;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.HeldItemContext;
 import org.jspecify.annotations.Nullable;
 
 @Environment(EnvType.CLIENT)
-public record CustomBundleFullnessProperty() implements RangeSelectItemModelProperty {
+public record CustomBundleFullnessProperty() implements NumericProperty {
 	public static final MapCodec<CustomBundleFullnessProperty> CODEC = MapCodec.unit(new CustomBundleFullnessProperty());
 
 	@Override
-	public float get(ItemStack stack, @Nullable ClientLevel world, @Nullable ItemOwner context, int seed) {
+	public float getValue(ItemStack stack, @Nullable ClientWorld world, @Nullable HeldItemContext context, int seed) {
 		CustomBundleContentsComponent customBundleContentsComponent = stack.getOrDefault(BundleAPIDataComponentTypes.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.DEFAULT);
-		return customBundleContentsComponent.weight().floatValue();
+		return customBundleContentsComponent.getOccupancy().floatValue();
 	}
 
 	@Override
-	public MapCodec<CustomBundleFullnessProperty> type() {
+	public MapCodec<CustomBundleFullnessProperty> getCodec() {
 		return CODEC;
 	}
 }

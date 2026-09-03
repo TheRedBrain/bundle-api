@@ -3,14 +3,13 @@
   "package": "com.github.theredbrain.bundleapi.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "client.gui.screen.ingame.AbstractContainerScreenMixin",
-    "client.gui.tooltip.ClientTooltipComponentMixin",
-    "client.render.item.model.ItemModelsMixin",
-    "client.render.item.property.bool.ConditionalItemModelPropertiesMixin",
-    "client.render.item.property.numeric.RangeSelectItemModelPropertiesMixin"
+    "client.gui.screen.ingame.HandledScreenMixin",
+    "client.gui.tooltip.TooltipComponentMixin",
+    "client.render.item.model.ItemModelTypesMixin",
+    "client.render.item.property.bool.BooleanPropertiesMixin",
+    "client.render.item.property.numeric.NumericPropertiesMixin"
   ],
   "mixins": [
-    "world.inventory.AbstractContainerMenuMixin"
   ],
   "injectors": {
     "defaultRequire": 1

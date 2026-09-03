@@ -3,16 +3,16 @@ package com.github.theredbrain.bundleapi.client.render.item.model;
 import com.mojang.serialization.MapCodec;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.item.ItemModel;
-import net.minecraft.client.renderer.item.ItemModelResolver;
-import net.minecraft.client.renderer.item.ItemStackRenderState;
-import net.minecraft.client.resources.model.ResolvableModel;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.world.entity.ItemOwner;
-import net.minecraft.world.item.ItemDisplayContext;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.BundleContents;
+import net.minecraft.client.item.ItemModelManager;
+import net.minecraft.client.render.item.ItemRenderState;
+import net.minecraft.client.render.item.model.ItemModel;
+import net.minecraft.client.render.model.ResolvableModel;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.BundleContentsComponent;
+import net.minecraft.item.ItemDisplayContext;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.HeldItemContext;
 import org.jspecify.annotations.Nullable;
 
 @Environment(EnvType.CLIENT)
@@ -21,37 +21,37 @@ public class CustomBundleSelectedItemModel implements ItemModel {
 
 	@Override
 	public void update(
-			ItemStackRenderState state,
+			ItemRenderState state,
 			ItemStack stack,
-			ItemModelResolver resolver,
+			ItemModelManager resolver,
 			ItemDisplayContext displayContext,
-			@Nullable ClientLevel world,
-			@Nullable ItemOwner heldItemContext,
+			@Nullable ClientWorld world,
+			@Nullable HeldItemContext heldItemContext,
 			int seed
 	) {
-		state.appendModelIdentityElement(this);
-		BundleContents bundleContentsComponent = stack.get(DataComponents.BUNDLE_CONTENTS);
-		if (bundleContentsComponent != null && bundleContentsComponent.getSelectedItem() != -1) {
-			resolver.appendItemLayers(state, bundleContentsComponent.getItemUnsafe(bundleContentsComponent.getSelectedItem()), displayContext, world, heldItemContext, seed);
+		state.addModelKey(this);
+		BundleContentsComponent bundleContentsComponent = stack.get(DataComponentTypes.BUNDLE_CONTENTS);
+		if (bundleContentsComponent != null && bundleContentsComponent.getSelectedStackIndex() != -1) {
+			resolver.update(state, bundleContentsComponent.get(bundleContentsComponent.getSelectedStackIndex()), displayContext, world, heldItemContext, seed);
 		}
 	}
 
 	@Environment(EnvType.CLIENT)
 	public record Unbaked() implements ItemModel.Unbaked {
-		public static final MapCodec<Unbaked> CODEC = MapCodec.unit(new Unbaked());
+		public static final MapCodec<CustomBundleSelectedItemModel.Unbaked> CODEC = MapCodec.unit(new CustomBundleSelectedItemModel.Unbaked());
 
 		@Override
-		public MapCodec<Unbaked> type() {
+		public MapCodec<CustomBundleSelectedItemModel.Unbaked> getCodec() {
 			return CODEC;
 		}
 
 		@Override
-		public ItemModel bake(ItemModel.BakingContext context) {
+		public ItemModel bake(ItemModel.BakeContext context) {
 			return CustomBundleSelectedItemModel.INSTANCE;
 		}
 
 		@Override
-		public void resolveDependencies(ResolvableModel.Resolver resolver) {
+		public void resolve(ResolvableModel.Resolver resolver) {
 		}
 	}
 }

@@ -3,32 +3,32 @@ package com.github.theredbrain.bundleapi.client.gui.tooltip;
 import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
-import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
-import net.minecraft.util.Mth;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gl.RenderPipelines;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.tooltip.HoveredTooltipPositioner;
+import net.minecraft.client.gui.tooltip.TooltipComponent;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.item.ItemStack;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.MathHelper;
 import org.apache.commons.lang3.math.Fraction;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
 @Environment(EnvType.CLIENT)
-public class CustomBundleTooltipComponent implements ClientTooltipComponent {
-	private static final Identifier BUNDLE_PROGRESS_BAR_BORDER_TEXTURE = Identifier.withDefaultNamespace("container/bundle/bundle_progressbar_border");
-	private static final Identifier BUNDLE_PROGRESS_BAR_FILL_TEXTURE = Identifier.withDefaultNamespace("container/bundle/bundle_progressbar_fill");
-	private static final Identifier BUNDLE_PROGRESS_BAR_FULL_TEXTURE = Identifier.withDefaultNamespace("container/bundle/bundle_progressbar_full");
-	private static final Identifier BUNDLE_SLOT_HIGHLIGHT_BACK_TEXTURE = Identifier.withDefaultNamespace("container/bundle/slot_highlight_back");
-	private static final Identifier BUNDLE_SLOT_HIGHLIGHT_FRONT_TEXTURE = Identifier.withDefaultNamespace("container/bundle/slot_highlight_front");
-	private static final Identifier BUNDLE_SLOT_BACKGROUND_TEXTURE = Identifier.withDefaultNamespace("container/bundle/slot_background");
-	private static final Component BUNDLE_FULL = Component.translatable("item.minecraft.bundle.full");
-	private static final Component BUNDLE_EMPTY = Component.translatable("item.minecraft.bundle.empty");
-	private static final Component BUNDLE_EMPTY_DESCRIPTION = Component.translatable("item.minecraft.bundle.empty.description");
+public class CustomBundleTooltipComponent implements TooltipComponent {
+	private static final Identifier BUNDLE_PROGRESS_BAR_BORDER_TEXTURE = Identifier.ofVanilla("container/bundle/bundle_progressbar_border");
+	private static final Identifier BUNDLE_PROGRESS_BAR_FILL_TEXTURE = Identifier.ofVanilla("container/bundle/bundle_progressbar_fill");
+	private static final Identifier BUNDLE_PROGRESS_BAR_FULL_TEXTURE = Identifier.ofVanilla("container/bundle/bundle_progressbar_full");
+	private static final Identifier BUNDLE_SLOT_HIGHLIGHT_BACK_TEXTURE = Identifier.ofVanilla("container/bundle/slot_highlight_back");
+	private static final Identifier BUNDLE_SLOT_HIGHLIGHT_FRONT_TEXTURE = Identifier.ofVanilla("container/bundle/slot_highlight_front");
+	private static final Identifier BUNDLE_SLOT_BACKGROUND_TEXTURE = Identifier.ofVanilla("container/bundle/slot_background");
+	private static final Text BUNDLE_FULL = Text.translatable("item.minecraft.bundle.full");
+	private static final Text BUNDLE_EMPTY = Text.translatable("item.minecraft.bundle.empty");
+	private static final Text BUNDLE_EMPTY_DESCRIPTION = Text.translatable("item.minecraft.bundle.empty.description");
 	private final CustomBundleContentsComponent customBundleContents;
 
 	public CustomBundleTooltipComponent(CustomBundleContentsComponent customBundleContents) {
@@ -36,21 +36,21 @@ public class CustomBundleTooltipComponent implements ClientTooltipComponent {
 	}
 
 	@Override
-	public int getHeight(Font textRenderer) {
+	public int getHeight(TextRenderer textRenderer) {
 		return this.customBundleContents.isEmpty() ? getHeightOfEmpty(textRenderer) : this.getHeightOfNonEmpty();
 	}
 
 	@Override
-	public int getWidth(Font textRenderer) {
+	public int getWidth(TextRenderer textRenderer) {
 		return 96;
 	}
 
 	@Override
-	public boolean showTooltipWithItemInHand() {
+	public boolean isSticky() {
 		return true;
 	}
 
-	private static int getHeightOfEmpty(Font textRenderer) {
+	private static int getHeightOfEmpty(TextRenderer textRenderer) {
 		return getDescriptionHeight(textRenderer) + 13 + 8;
 	}
 
@@ -67,7 +67,7 @@ public class CustomBundleTooltipComponent implements ClientTooltipComponent {
 	}
 
 	private int getRows() {
-		return Mth.positiveCeilDiv(this.getNumVisibleSlots(), 4);
+		return MathHelper.ceilDiv(this.getNumVisibleSlots(), 4);
 	}
 
 	private int getNumVisibleSlots() {
@@ -75,7 +75,7 @@ public class CustomBundleTooltipComponent implements ClientTooltipComponent {
 	}
 
 	@Override
-	public void renderImage(Font textRenderer, int x, int y, int width, int height, GuiGraphics context) {
+	public void drawItems(TextRenderer textRenderer, int x, int y, int width, int height, DrawContext context) {
 		if (this.customBundleContents.isEmpty()) {
 			this.drawEmptyTooltip(textRenderer, x, y, width, height, context);
 		} else {
@@ -83,14 +83,14 @@ public class CustomBundleTooltipComponent implements ClientTooltipComponent {
 		}
 	}
 
-	private void drawEmptyTooltip(Font textRenderer, int x, int y, int width, int height, GuiGraphics context) {
+	private void drawEmptyTooltip(TextRenderer textRenderer, int x, int y, int width, int height, DrawContext context) {
 		drawEmptyDescription(x + this.getXMargin(width), y, textRenderer, context);
 		this.drawProgressBar(x + this.getXMargin(width), y + getDescriptionHeight(textRenderer) + 4, textRenderer, context);
 	}
 
-	private void drawNonEmptyTooltip(Font textRenderer, int x, int y, int width, int height, GuiGraphics context) {
+	private void drawNonEmptyTooltip(TextRenderer textRenderer, int x, int y, int width, int height, DrawContext context) {
 		boolean bl = this.customBundleContents.size() > 12;
-		List<ItemStack> list = this.firstStacksInContents(this.customBundleContents.getNumberOfItemsToShow());
+		List<ItemStack> list = this.firstStacksInContents(this.customBundleContents.getNumberOfStacksShown());
 		int i = x + this.getXMargin(width) + 96;
 		int j = y + this.getRows() * 24;
 		int k = 1;
@@ -114,7 +114,7 @@ public class CustomBundleTooltipComponent implements ClientTooltipComponent {
 
 	private List<ItemStack> firstStacksInContents(int numberOfStacksShown) {
 		int i = Math.min(this.customBundleContents.size(), numberOfStacksShown);
-		return this.customBundleContents.itemCopyStream().toList().subList(0, i);
+		return this.customBundleContents.stream().toList().subList(0, i);
 	}
 
 	private static boolean shouldDrawExtraItemsCount(boolean hasMoreItems, int column, int row) {
@@ -126,73 +126,73 @@ public class CustomBundleTooltipComponent implements ClientTooltipComponent {
 	}
 
 	private int numContentItemsAfter(List<ItemStack> items) {
-		return this.customBundleContents.itemCopyStream().skip(items.size()).mapToInt(ItemStack::getCount).sum();
+		return this.customBundleContents.stream().skip(items.size()).mapToInt(ItemStack::getCount).sum();
 	}
 
-	private void drawItem(int index, int x, int y, List<ItemStack> stacks, int seed, Font textRenderer, GuiGraphics drawContext) {
+	private void drawItem(int index, int x, int y, List<ItemStack> stacks, int seed, TextRenderer textRenderer, DrawContext drawContext) {
 		int i = stacks.size() - index;
-		boolean bl = i == this.customBundleContents.getSelectedItem();
+		boolean bl = i == this.customBundleContents.getSelectedStackIndex();
 		ItemStack itemStack = stacks.get(i);
 		if (bl) {
-			drawContext.blitSprite(RenderPipelines.GUI_TEXTURED, BUNDLE_SLOT_HIGHLIGHT_BACK_TEXTURE, x, y, 24, 24);
+			drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, BUNDLE_SLOT_HIGHLIGHT_BACK_TEXTURE, x, y, 24, 24);
 		} else {
-			drawContext.blitSprite(RenderPipelines.GUI_TEXTURED, BUNDLE_SLOT_BACKGROUND_TEXTURE, x, y, 24, 24);
+			drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, BUNDLE_SLOT_BACKGROUND_TEXTURE, x, y, 24, 24);
 		}
 
-		drawContext.renderItem(itemStack, x + 4, y + 4, seed);
-		drawContext.renderItemDecorations(textRenderer, itemStack, x + 4, y + 4);
+		drawContext.drawItem(itemStack, x + 4, y + 4, seed);
+		drawContext.drawStackOverlay(textRenderer, itemStack, x + 4, y + 4);
 		if (bl) {
-			drawContext.blitSprite(RenderPipelines.GUI_TEXTURED, BUNDLE_SLOT_HIGHLIGHT_FRONT_TEXTURE, x, y, 24, 24);
+			drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, BUNDLE_SLOT_HIGHLIGHT_FRONT_TEXTURE, x, y, 24, 24);
 		}
 	}
 
-	private static void drawExtraItemsCount(int x, int y, int numExtra, Font textRenderer, GuiGraphics drawContext) {
-		drawContext.drawCenteredString(textRenderer, "+" + numExtra, x + 12, y + 10, -1);
+	private static void drawExtraItemsCount(int x, int y, int numExtra, TextRenderer textRenderer, DrawContext drawContext) {
+		drawContext.drawCenteredTextWithShadow(textRenderer, "+" + numExtra, x + 12, y + 10, -1);
 	}
 
-	private void drawSelectedItemTooltip(Font textRenderer, GuiGraphics drawContext, int x, int y, int width) {
-		if (this.customBundleContents.hasSelectedItem()) {
-			ItemStack itemStack = this.customBundleContents.getItemUnsafe(this.customBundleContents.getSelectedItem());
-			Component text = itemStack.getStyledHoverName();
-			int i = textRenderer.width(text.getVisualOrderText());
+	private void drawSelectedItemTooltip(TextRenderer textRenderer, DrawContext drawContext, int x, int y, int width) {
+		if (this.customBundleContents.hasSelectedStack()) {
+			ItemStack itemStack = this.customBundleContents.get(this.customBundleContents.getSelectedStackIndex());
+			Text text = itemStack.getFormattedName();
+			int i = textRenderer.getWidth(text.asOrderedText());
 			int j = x + width / 2 - 12;
-			ClientTooltipComponent tooltipComponent = ClientTooltipComponent.create(text.getVisualOrderText());
-			drawContext.renderTooltip(
-					textRenderer, List.of(tooltipComponent), j - i / 2, y - 15, DefaultTooltipPositioner.INSTANCE, itemStack.get(DataComponents.TOOLTIP_STYLE)
+			TooltipComponent tooltipComponent = TooltipComponent.of(text.asOrderedText());
+			drawContext.drawTooltipImmediately(
+					textRenderer, List.of(tooltipComponent), j - i / 2, y - 15, HoveredTooltipPositioner.INSTANCE, itemStack.get(DataComponentTypes.TOOLTIP_STYLE)
 			);
 		}
 	}
 
-	private void drawProgressBar(int x, int y, Font textRenderer, GuiGraphics drawContext) {
-		drawContext.blitSprite(RenderPipelines.GUI_TEXTURED, this.getProgressBarFillTexture(), x + 1, y, this.getProgressBarFill(), 13);
-		drawContext.blitSprite(RenderPipelines.GUI_TEXTURED, BUNDLE_PROGRESS_BAR_BORDER_TEXTURE, x, y, 96, 13);
-		Component text = this.getProgressBarLabel();
+	private void drawProgressBar(int x, int y, TextRenderer textRenderer, DrawContext drawContext) {
+		drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, this.getProgressBarFillTexture(), x + 1, y, this.getProgressBarFill(), 13);
+		drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, BUNDLE_PROGRESS_BAR_BORDER_TEXTURE, x, y, 96, 13);
+		Text text = this.getProgressBarLabel();
 		if (text != null) {
-			drawContext.drawCenteredString(textRenderer, text, x + 48, y + 3, -1);
+			drawContext.drawCenteredTextWithShadow(textRenderer, text, x + 48, y + 3, -1);
 		}
 	}
 
-	private static void drawEmptyDescription(int x, int y, Font textRenderer, GuiGraphics drawContext) {
-		drawContext.drawWordWrap(textRenderer, BUNDLE_EMPTY_DESCRIPTION, x, y, 96, -5592406);
+	private static void drawEmptyDescription(int x, int y, TextRenderer textRenderer, DrawContext drawContext) {
+		drawContext.drawWrappedTextWithShadow(textRenderer, BUNDLE_EMPTY_DESCRIPTION, x, y, 96, -5592406);
 	}
 
-	private static int getDescriptionHeight(Font textRenderer) {
-		return textRenderer.split(BUNDLE_EMPTY_DESCRIPTION, 96).size() * 9;
+	private static int getDescriptionHeight(TextRenderer textRenderer) {
+		return textRenderer.wrapLines(BUNDLE_EMPTY_DESCRIPTION, 96).size() * 9;
 	}
 
 	private int getProgressBarFill() {
-		return Mth.clamp(Mth.mulAndTruncate(this.customBundleContents.weight(), 94), 0, 94);
+		return MathHelper.clamp(MathHelper.multiplyFraction(this.customBundleContents.getOccupancy(), 94), 0, 94);
 	}
 
 	private Identifier getProgressBarFillTexture() {
-		return this.customBundleContents.weight().compareTo(Fraction.ONE) >= 0 ? BUNDLE_PROGRESS_BAR_FULL_TEXTURE : BUNDLE_PROGRESS_BAR_FILL_TEXTURE;
+		return this.customBundleContents.getOccupancy().compareTo(Fraction.ONE) >= 0 ? BUNDLE_PROGRESS_BAR_FULL_TEXTURE : BUNDLE_PROGRESS_BAR_FILL_TEXTURE;
 	}
 
-	private @Nullable Component getProgressBarLabel() {
+	private @Nullable Text getProgressBarLabel() {
 		if (this.customBundleContents.isEmpty()) {
 			return BUNDLE_EMPTY;
 		} else {
-			return this.customBundleContents.weight().compareTo(Fraction.ONE) >= 0 ? BUNDLE_FULL : null;
+			return this.customBundleContents.getOccupancy().compareTo(Fraction.ONE) >= 0 ? BUNDLE_FULL : null;
 		}
 	}
 }
