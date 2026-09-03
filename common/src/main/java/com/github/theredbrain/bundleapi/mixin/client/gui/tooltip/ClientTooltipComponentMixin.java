@@ -4,24 +4,21 @@ import com.github.theredbrain.bundleapi.client.gui.tooltip.CustomBundleTooltipCo
 import com.github.theredbrain.bundleapi.item.tooltip.CustomBundleTooltipData;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import org.spongepowered.asm.mixin.Mixin;
 
-@Environment(EnvType.CLIENT)
 @Mixin(ClientTooltipComponent.class)
 public interface ClientTooltipComponentMixin {
 
 	@WrapMethod(
 			method = "create(Lnet/minecraft/world/inventory/tooltip/TooltipComponent;)Lnet/minecraft/client/gui/screens/inventory/tooltip/ClientTooltipComponent;"
 	)
-	private static ClientTooltipComponent bundleapi$wrap_create(TooltipComponent tooltipComponent, Operation<ClientTooltipComponent> original) {
-		if (tooltipComponent instanceof CustomBundleTooltipData customBundleTooltipData) {
+	private static ClientTooltipComponent bundleapi$wrap_create(TooltipComponent tooltipData, Operation<ClientTooltipComponent> original) {
+		if (tooltipData instanceof CustomBundleTooltipData customBundleTooltipData) {
 			return new CustomBundleTooltipComponent(customBundleTooltipData.contents());
 		}
-		return original.call(tooltipComponent);
+		return original.call(tooltipData);
 	}
 
 }
