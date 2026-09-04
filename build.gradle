@@ -1,77 +1,213 @@
 plugins {
-    id 'dev.architectury.loom' version "${loom_version}" apply false
-    id 'architectury-plugin' version '3.5-SNAPSHOT'
-    id 'com.gradleup.shadow' version '9.4.3' apply false
+    id 'fabric-loom' version "${loom_version}"
+    id "me.modmuss50.mod-publish-plugin" version "2.2.0"
 }
 
-architectury {
-    minecraft = project.minecraft_version
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
 }
 
-allprojects {
-    group = rootProject.maven_group
-    version = rootProject.mod_version
+fabricApi {
+    configureDataGeneration() {
+        client = true
+    }
 }
 
-subprojects {
-    apply plugin: 'dev.architectury.loom'
-    apply plugin: 'architectury-plugin'
-    apply plugin: 'maven-publish'
-
-    base {
-        // Set up a suffixed format for the mod jar names, e.g. `example-fabric`.
-        archivesName = "$rootProject.archives_name-$project.name"
+repositories {
+    // Add repositories to retrieve artifacts from in here.
+    // You should only use this when depending on other mods because
+    // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
+    // See https://docs.gradle.org/current/userguide/declaring_repositories.html
+    // for more information about repositories.
+    maven { url = "https://maven.gnomecraft.net/releases/" }
+    maven { url = "https://maven.architectury.dev" }
+    maven {
+        name = "Ladysnake Libs"
+        url = 'https://maven.ladysnake.org/releases'
     }
-
-    repositories {
-        // Add repositories to retrieve artifacts from in here.
-        // You should only use this when depending on other mods because
-        // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-        // See https://docs.gradle.org/current/userguide/declaring_repositories.html
-        // for more information about repositories.
-    }
-
-    dependencies {
-        minecraft "net.minecraft:minecraft:$rootProject.minecraft_version"
-        mappings loom.layered {
-            it.mappings("net.fabricmc:yarn:$rootProject.yarn_mappings:v2")
-            it.mappings("dev.architectury:yarn-mappings-patch-neoforge:$rootProject.yarn_mappings_patch_neoforge_version")
+    maven {
+        name = "NeoForge"
+        url = uri("https://maven.neoforged.net/releases/")
+        content {
+            includeGroupAndSubgroups("net.neoforged")
+            includeGroupAndSubgroups("cpw.mods")
+            includeGroupAndSubgroups("net.minecraftforge")
         }
     }
+}
 
-    java {
-        // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-        // if it is present.
-        // If you remove this line, sources will not be generated.
-        withSourcesJar()
-
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+sourceSets {
+    fabric {
+        compileClasspath += main.compileClasspath
+        runtimeClasspath += main.runtimeClasspath
     }
-
-    tasks.withType(JavaCompile).configureEach {
-        it.options.release = 21
+    neoforge {
+        compileClasspath += main.compileClasspath
+        runtimeClasspath += main.runtimeClasspath
     }
+    testmod {
+        compileClasspath += main.compileClasspath
+        runtimeClasspath += main.runtimeClasspath
 
-    // Configure Maven publishing.
-    publishing {
-        publications {
-            mavenJava(MavenPublication) {
-                artifactId = base.archivesName.get()
-                from components.java
-            }
-        }
-
-        // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-        repositories {
-            // Add repositories to publish to here.
-            // Notice: This block does NOT have the same function as the block in the top level.
-            // The repositories here will be used for publishing your artifact, not for
-            // retrieving dependencies.
+        resources {
+            srcDirs += [
+                    'src/testmod/generated'
+            ]
         }
     }
+}
+
+loom {
+    runs {
+        testmodClient {
+            client()
+            name = "Testmod Client"
+            source sourceSets.testmod
+        }
+
+        datagen {
+            client()
+            name "Data Generation Client"
+            vmArg "-Dfabric-api.datagen"
+            vmArg "-Dfabric-api.datagen.output-dir=${file("src/testmod/generated")}"
+            vmArg "-Dfabric-api.datagen.strict-validation"
+
+            ideConfigGenerated = false
+            runDir "build/datagen"
+            source sourceSets.testmod
+        }
+    }
+}
+
+dependencies {
+    minecraft "net.minecraft:minecraft::${project.minecraft_version}"
+//    mappings loom.officialMojangMappings()
+
+    mappings loom.layered {
+        it.mappings("net.fabricmc:yarn:$project.yarn_mappings:v2")
+        it.mappings("dev.architectury:yarn-mappings-patch-neoforge:$project.yarn_mappings_patch_neoforge_version")
+    }
+
+    modApi include("dev.yumi.mc.core:yumi-mc-foundation:${project.yumi_version}")
+    modImplementation("dev.yumi.mc.core:yumi-mc-foundation:${project.yumi_version}")
+
+    modCompileOnly localRuntime("net.fabricmc:fabric-loader:${project.fabric_loader_version}")
+
+    // Mod dependencies
+    fabricCompileOnly testmodCompileOnly(localRuntime("net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"))
+
+    neoforgeCompileOnly("net.neoforged:neoforge:${project.neoforge_version}:universal")
+    neoforgeCompileOnly("net.neoforged.fancymodloader:loader:${project.neoforge_loader_version}")
+
+    // Dev Runtime
+    testmodImplementation sourceSets.main.output
+    neoforgeImplementation sourceSets.main.output
+    fabricImplementation sourceSets.main.output
+
+    localRuntime sourceSets.fabric.output
+}
+
+def resourceTargets = ["fabric.mod.json", "META-INF/neoforge.mods.toml", "META-INF/jarjar/metadata.json"]
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching(resourceTargets) {
+        expand(project.properties)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
+    it.options.release = 21
+}
+
+java {
+    // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+    // if it is present.
+    // If you remove this line, sources will not be generated.
+    withSourcesJar()
+
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
+
+    from(sourceSets.neoforge.output)
+    from(sourceSets.fabric.output)
+}
+
+sourcesJar {
+    from(sourceSets.neoforge.java.sourceDirectories)
+    from(sourceSets.neoforge.resources.sourceDirectories)
+    from(sourceSets.fabric.java.sourceDirectories)
+    from(sourceSets.fabric.resources.sourceDirectories)
 }
 
 ext.changelog_last_section = { ->
     return new File("CHANGELOG.md").text.split('\n# ')[0]
+}
+
+publishMods {
+    file = remapJar.archiveFile // TODO change to jar.archiveFile in 26.1+
+    changelog = changelog_last_section()
+    version = "${version}"
+    type = STABLE
+    modLoaders.add("fabric")
+    modLoaders.add("neoforge")
+
+    // When dry run is enabled the release assets will be saved to the build directory for testing.
+    dryRun = true // TODO change to false for publishing
+
+    if (System.getenv("CURSEFORGE_API_KEY")) {
+        curseforge {
+            projectId = System.getenv("CURSEFORGE_PROJECT_ID")
+            accessToken = System.getenv("CURSEFORGE_API_KEY")
+            client = true
+            server = true
+
+            minecraftVersions.add(minecraft_version)
+            for (String a : additional_minecraft_versions.split(",")) {
+                if (!a.strip().isEmpty()) {
+                    minecraftVersions.add(a.strip())
+                }
+            }
+            projectSlug = "test-mod"
+//            requires("project-slug-1", "another-project")
+//            optional("project-slug")
+        }
+    }
+
+    if (System.getenv("MODRINTH_API_KEY")) {
+        modrinth {
+            accessToken = System.getenv("MODRINTH_API_KEY")
+            projectId = System.getenv("MODRINTH_PROJECT_ID")
+
+            minecraftVersions.add(minecraft_version);
+            for (String a : additional_minecraft_versions.split(",")) {
+                if (!a.strip().isEmpty()) {
+                    minecraftVersions.add(a.strip())
+                }
+            }
+            environment = CLIENT_AND_SERVER
+//            requires("project-slug")
+//            optional("project-slug")
+        }
+    }
+
+    if (System.getenv("GH_API_KEY")) {
+        github {
+            accessToken = System.getenv("GH_API_KEY")
+            repository = System.getenv("GH_REPO")
+            commitish = "${minecraft_version}" // This is the branch the release tag will be created from
+            tagName = "${version}"
+        }
+    }
 }

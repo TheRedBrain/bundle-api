@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"id": "bundleapi",
+	"version": "${version}",
+	"name": "Bundle API",
+	"description": "An API for mods that allows easy addition of bundles with custom sizes and filtered content.",
+	"authors": [
+		"TheRedBrain"
+	],
+	"contact": {
+		"sources": "https://github.com/TheRedBrain/bundle-api"
+	},
+	"license": "MIT",
+	"icon": "assets/bundleapi/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"yumi:init": [
+			"com.github.theredbrain.bundleapi.BundleAPI"
+		],
+		"yumi:client_init": [
+			"com.github.theredbrain.bundleapi.client.BundleAPIClient"
+		]
+	},
+	"mixins": [
+		"bundleapi.mixins.json"
+	],
+	"depends": {
+		"minecraft": "${minecraft_version}",
+		"fabricloader": ">=${fabric_loader_version}"
+	}
+}
