@@ -2,25 +2,29 @@
 
 An API for mods that allows easy addition of bundles with custom sizes and filtered content.
 
+This repository is the **RPG Series fork** of [TheRedBrain's Bundle API](https://github.com/TheRedBrain/bundle-api),
+maintained because upstream stopped at Minecraft 1.21.1. The mod id (`bundleapi`), maven group
+(`com.github.TheRedBrain`) and artifact name (`bundle-api`) are kept unchanged so it stays a drop-in replacement.
+
+Current line: **Minecraft 26.1.x, Java 25**, Fabric + NeoForge (Architectury).
+
 ## Installation
 
-Add this mod as dependency for your project.
+The fork is built and consumed locally — build it with `./gradlew build publishToMavenLocal`, then depend on it
+from `mavenLocal()`:
 
 build.gradle
 
 ```groovy
 repositories {
-    maven {
-        name = 'Modrinth'
-        url = 'https://api.modrinth.com/maven'
-        content {
-            includeGroup 'maven.modrinth'
-        }
-    }
+    mavenLocal()
 }
 
 dependencies {
-    modImplementation "maven.modrinth:bundle-api:${project.bundle_api_version}"
+    // pick the artifact matching your platform module
+    modImplementation "com.github.TheRedBrain:bundle-api-fabric:${project.bundle_api_version}"
+    // or
+    modImplementation "com.github.TheRedBrain:bundle-api-neoforge:${project.bundle_api_version}"
 }
 ```
 
@@ -37,4 +41,5 @@ bundle_api_version=2.0.0
 - Register your item instance.
 - Add model and texture files (taking inspiration from the vanilla bundle is recommended)
 
-A simple example can be found on [GitHub](https://github.com/TheRedBrain/bundle-api/blob/1.21.11/fabric/src/testmod/java/com/github/theredbrain/bundleapi_test/BundleAPITest.java).
+A simple example can be found in this repository at
+`fabric/src/testmod/java/com/github/theredbrain/bundleapi_test/BundleAPITest.java`.
