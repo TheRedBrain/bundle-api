@@ -11,7 +11,7 @@ authors = "TheRedBrain"
 description = '''
 An API for mods that allows easy addition of bundles with custom sizes and filtered content.
 '''
-logoFile = "icon.png"
+iconFile = "icon.png"
 
 [[dependencies.bundleapi]]
 modId = "neoforge"
