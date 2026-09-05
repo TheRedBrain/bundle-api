@@ -1,3 +1,7 @@
+# 2.0.0
+
+- updated to Minecraft 1.21.11 (Thanks Daedelus for the PR!)
+
 # 1.1.0
 
 - migrated to Architectury (Thanks Daedelus!)

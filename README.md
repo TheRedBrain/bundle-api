@@ -28,7 +28,7 @@ gradle.properties
 
 ```
 # replace with latest version
-bundle_api_version=1.0.0
+bundle_api_version=2.0.0
 ```
 
 ## Usage
@@ -37,4 +37,4 @@ bundle_api_version=1.0.0
 - Register your item instance.
 - Add model and texture files (taking inspiration from the vanilla bundle is recommended)
 
-A simple example can be found on [GitHub](https://github.com/TheRedBrain/bundle-api/blob/1.21.1/src/testmod/java/com/github/theredbrain/bundleapi_test/BundleAPITest.java).
+A simple example can be found on [GitHub](https://github.com/TheRedBrain/bundle-api/blob/1.21.11/fabric/src/testmod/java/com/github/theredbrain/bundleapi_test/BundleAPITest.java).
