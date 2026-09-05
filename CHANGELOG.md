@@ -7,6 +7,9 @@
 - Tooltip subclasses override `extractImage` (with `GuiGraphicsExtractor`) instead of `renderImage`.
 - Bundles can supply a custom empty-state tooltip description.
 - Removed the leftover bundle fullness tooltip line.
+# 2.0.0
+
+- updated to Minecraft 1.21.11 (Thanks Daedelus for the PR!)
 
 # 1.1.0
 
