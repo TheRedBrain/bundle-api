@@ -2,22 +2,19 @@
 
 An API for mods that allows easy addition of bundles with custom sizes and filtered content.
 
-This repository is the **RPG Series fork** of [TheRedBrain's Bundle API](https://github.com/TheRedBrain/bundle-api),
-maintained because upstream stopped at Minecraft 1.21.1. The mod id (`bundleapi`), maven group
-(`com.github.TheRedBrain`) and artifact name (`bundle-api`) are kept unchanged so it stays a drop-in replacement.
-
-Current line: **Minecraft 26.1.x, Java 25**, Fabric + NeoForge (Architectury).
-
 ## Installation
 
-The fork is built and consumed locally — build it with `./gradlew build publishToMavenLocal`, then depend on it
-from `mavenLocal()`:
-
-build.gradle
+Add this mod as dependency for your project.
 
 ```groovy
 repositories {
-    mavenLocal()
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content {
+            includeGroup 'maven.modrinth'
+        }
+    }
 }
 
 dependencies {
@@ -32,7 +29,7 @@ gradle.properties
 
 ```
 # replace with latest version
-bundle_api_version=1.1.1+26.1.2
+bundle_api_version=3.0.0
 ```
 
 ## Usage
