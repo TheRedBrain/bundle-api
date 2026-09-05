@@ -6,6 +6,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.block.entity.BeehiveBlockEntity;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.BeesComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.tooltip.TooltipData;
@@ -83,7 +84,7 @@ public record CustomBundleContentsComponent(Content content, Fraction occupancy/
 		if (customBundleContentsComponent != null) {
 			return NESTED_BUNDLE_OCCUPANCY.add(customBundleContentsComponent.getOccupancy());
 		} else {
-			List<BeehiveBlockEntity.BeeData> list = stack.getOrDefault(DataComponentTypes.BEES, List.of());
+			List<BeehiveBlockEntity.BeeData> list = stack.getOrDefault(DataComponentTypes.BEES, BeesComponent.DEFAULT).bees();
 			return !list.isEmpty() ? Fraction.ONE : Fraction.getFraction(1, stack.getMaxCount() * size_multiplier);
 		}
 	}

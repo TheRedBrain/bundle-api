@@ -1,103 +1,202 @@
 package com.github.theredbrain.bundleapi.client.gui.tooltip;
 
 import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import com.github.theredbrain.bundleapi.item.tooltip.CustomBundleTooltipData;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.gui.tooltip.TooltipComponent;
 import net.minecraft.item.ItemStack;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.MathHelper;
 import org.apache.commons.lang3.math.Fraction;
+import org.jetbrains.annotations.Nullable;
 
-@Environment(EnvType.CLIENT)
+import java.util.List;
+
+/**
+ * Mirrors vanilla {@code BundleTooltipComponent} (1.21.4+ bundle tooltip layout: a grid of
+ * 24x24 slots plus an occupancy progress bar), but reads a {@link CustomBundleContentsComponent}.
+ * Unlike vanilla bundles, custom bundles have no "selected stack", so no selection highlight is drawn.
+ */
 public class CustomBundleTooltipComponent implements TooltipComponent {
-	private static final Identifier BACKGROUND_TEXTURE = Identifier.ofVanilla("container/bundle/background");
-	private static final int field_32381 = 4;
-	private static final int field_32382 = 1;
-	private static final int WIDTH_PER_COLUMN = 18;
-	private static final int HEIGHT_PER_ROW = 20;
+	private static final Identifier BUNDLE_PROGRESS_BAR_BORDER_TEXTURE = Identifier.ofVanilla("container/bundle/bundle_progressbar_border");
+	private static final Identifier BUNDLE_PROGRESS_BAR_FILL_TEXTURE = Identifier.ofVanilla("container/bundle/bundle_progressbar_fill");
+	private static final Identifier BUNDLE_PROGRESS_BAR_FULL_TEXTURE = Identifier.ofVanilla("container/bundle/bundle_progressbar_full");
+	private static final Identifier BUNDLE_SLOT_BACKGROUND_TEXTURE = Identifier.ofVanilla("container/bundle/slot_background");
+	private static final int SLOTS_PER_ROW = 4;
+	private static final int SLOT_DIMENSION = 24;
+	private static final int ROW_WIDTH = 96;
+	private static final int PROGRESS_BAR_HEIGHT = 13;
+	private static final int PROGRESS_BAR_WIDTH = 94;
+	private static final int MAX_SLOTS_SHOWN = 12;
+	private static final int MAX_SLOTS_SHOWN_WHEN_TOO_MANY_TYPES = 11;
+	private static final Text BUNDLE_FULL = Text.translatable("item.minecraft.bundle.full");
+	private static final Text BUNDLE_EMPTY = Text.translatable("item.minecraft.bundle.empty");
 	private final CustomBundleContentsComponent customBundleContents;
+	private final Text emptyDescription;
 
-	public CustomBundleTooltipComponent(CustomBundleContentsComponent customBundleContents) {
+	public CustomBundleTooltipComponent(CustomBundleContentsComponent customBundleContents, Text emptyDescription) {
 		this.customBundleContents = customBundleContents;
+		this.emptyDescription = emptyDescription;
+	}
+
+	/**
+	 * @deprecated Kept for binary compatibility, uses {@link CustomBundleTooltipData#DEFAULT_EMPTY_DESCRIPTION}.
+	 */
+	@Deprecated
+	public CustomBundleTooltipComponent(CustomBundleContentsComponent customBundleContents) {
+		this(customBundleContents, CustomBundleTooltipData.DEFAULT_EMPTY_DESCRIPTION);
 	}
 
 	@Override
-	public int getHeight() {
-		return this.getRowsHeight() + 4;
+	public int getHeight(TextRenderer textRenderer) {
+		return this.customBundleContents.isEmpty() ? this.getHeightOfEmpty(textRenderer) : this.getHeightOfNonEmpty();
 	}
 
 	@Override
 	public int getWidth(TextRenderer textRenderer) {
-		return this.getColumnsWidth();
-	}
-
-	private int getColumnsWidth() {
-		return this.getColumns() * 18 + 2;
-	}
-
-	private int getRowsHeight() {
-		return this.getRows() * 20 + 2;
+		return ROW_WIDTH;
 	}
 
 	@Override
-	public void drawItems(TextRenderer textRenderer, int x, int y, DrawContext context) {
-		int i = this.getColumns();
-		int j = this.getRows();
-		context.drawGuiTexture(BACKGROUND_TEXTURE, x, y, this.getColumnsWidth(), this.getRowsHeight());
-		boolean bl = this.customBundleContents.getOccupancy().compareTo(Fraction.ONE) >= 0;
-		int k = 0;
-
-		for (int l = 0; l < j; l++) {
-			for (int m = 0; m < i; m++) {
-				int n = x + m * 18 + 1;
-				int o = y + l * 20 + 1;
-				this.drawSlot(n, o, k++, bl, context, textRenderer);
-			}
-		}
+	public boolean isSticky() {
+		return true;
 	}
 
-	private void drawSlot(int x, int y, int index, boolean shouldBlock, DrawContext context, TextRenderer textRenderer) {
-		if (index >= this.customBundleContents.size()) {
-			this.draw(context, x, y, shouldBlock ? CustomBundleTooltipComponent.SlotSprite.BLOCKED_SLOT : CustomBundleTooltipComponent.SlotSprite.SLOT);
-		} else {
-			ItemStack itemStack = this.customBundleContents.get(index);
-			this.draw(context, x, y, CustomBundleTooltipComponent.SlotSprite.SLOT);
-			context.drawItem(itemStack, x + 1, y + 1, index);
-			context.drawItemInSlot(textRenderer, itemStack, x + 1, y + 1);
-			if (index == 0) {
-				HandledScreen.drawSlotHighlight(context, x + 1, y + 1, 0);
-			}
-		}
+	private int getHeightOfEmpty(TextRenderer textRenderer) {
+		return this.getDescriptionHeight(textRenderer) + PROGRESS_BAR_HEIGHT + 8;
 	}
 
-	private void draw(DrawContext context, int x, int y, CustomBundleTooltipComponent.SlotSprite sprite) {
-		context.drawGuiTexture(sprite.texture, x, y, 0, sprite.width, sprite.height);
+	private int getHeightOfNonEmpty() {
+		return this.getRowsHeight() + PROGRESS_BAR_HEIGHT + 8;
 	}
 
-	private int getColumns() {
-		return Math.max(2, (int) Math.ceil(Math.sqrt((double) this.customBundleContents.size() + 1.0)));
+	private int getRowsHeight() {
+		return this.getRows() * SLOT_DIMENSION;
+	}
+
+	private int getXMargin(int width) {
+		return (width - ROW_WIDTH) / 2;
 	}
 
 	private int getRows() {
-		return (int) Math.ceil(((double) this.customBundleContents.size() + 1.0) / (double) this.getColumns());
+		return MathHelper.ceilDiv(this.getNumVisibleSlots(), SLOTS_PER_ROW);
 	}
 
-	@Environment(EnvType.CLIENT)
-	static enum SlotSprite {
-		BLOCKED_SLOT(Identifier.ofVanilla("container/bundle/blocked_slot"), 18, 20),
-		SLOT(Identifier.ofVanilla("container/bundle/slot"), 18, 20);
+	private int getNumVisibleSlots() {
+		return Math.min(MAX_SLOTS_SHOWN, this.customBundleContents.size());
+	}
 
-		public final Identifier texture;
-		public final int width;
-		public final int height;
+	/**
+	 * Mirrors {@code BundleContentsComponent#getNumberOfStacksShown}.
+	 */
+	private int getNumberOfStacksShown() {
+		int i = this.customBundleContents.size();
+		int j = i > MAX_SLOTS_SHOWN ? MAX_SLOTS_SHOWN_WHEN_TOO_MANY_TYPES : MAX_SLOTS_SHOWN;
+		int k = i % SLOTS_PER_ROW;
+		int l = k == 0 ? 0 : SLOTS_PER_ROW - k;
+		return Math.min(i, j - l);
+	}
 
-		private SlotSprite(final Identifier texture, final int width, final int height) {
-			this.texture = texture;
-			this.width = width;
-			this.height = height;
+	@Override
+	public void drawItems(TextRenderer textRenderer, int x, int y, int width, int height, DrawContext context) {
+		if (this.customBundleContents.isEmpty()) {
+			this.drawEmptyTooltip(textRenderer, x, y, width, context);
+		} else {
+			this.drawNonEmptyTooltip(textRenderer, x, y, width, context);
+		}
+	}
+
+	private void drawEmptyTooltip(TextRenderer textRenderer, int x, int y, int width, DrawContext context) {
+		this.drawEmptyDescription(x + this.getXMargin(width), y, textRenderer, context);
+		this.drawProgressBar(x + this.getXMargin(width), y + this.getDescriptionHeight(textRenderer) + 4, textRenderer, context);
+	}
+
+	private void drawNonEmptyTooltip(TextRenderer textRenderer, int x, int y, int width, DrawContext context) {
+		boolean bl = this.customBundleContents.size() > MAX_SLOTS_SHOWN;
+		List<ItemStack> list = this.firstStacksInContents(this.getNumberOfStacksShown());
+		int i = x + this.getXMargin(width) + ROW_WIDTH;
+		int j = y + this.getRows() * SLOT_DIMENSION;
+		int k = 1;
+
+		for (int l = 1; l <= this.getRows(); l++) {
+			for (int m = 1; m <= SLOTS_PER_ROW; m++) {
+				int n = i - m * SLOT_DIMENSION;
+				int o = j - l * SLOT_DIMENSION;
+				if (shouldDrawExtraItemsCount(bl, m, l)) {
+					drawExtraItemsCount(n, o, this.numContentItemsAfter(list), textRenderer, context);
+				} else if (shouldDrawItem(list, k)) {
+					drawItem(k, n, o, list, k, textRenderer, context);
+					k++;
+				}
+			}
+		}
+
+		this.drawProgressBar(x + this.getXMargin(width), y + this.getRowsHeight() + 4, textRenderer, context);
+	}
+
+	private List<ItemStack> firstStacksInContents(int numberOfStacksShown) {
+		int i = Math.min(this.customBundleContents.size(), numberOfStacksShown);
+		return this.customBundleContents.stream().toList().subList(0, i);
+	}
+
+	private static boolean shouldDrawExtraItemsCount(boolean hasMoreItems, int column, int row) {
+		return hasMoreItems && column * row == 1;
+	}
+
+	private static boolean shouldDrawItem(List<ItemStack> items, int itemIndex) {
+		return items.size() >= itemIndex;
+	}
+
+	private int numContentItemsAfter(List<ItemStack> items) {
+		return this.customBundleContents.stream().skip(items.size()).mapToInt(ItemStack::getCount).sum();
+	}
+
+	private static void drawItem(int index, int x, int y, List<ItemStack> stacks, int seed, TextRenderer textRenderer, DrawContext drawContext) {
+		int i = stacks.size() - index;
+		ItemStack itemStack = stacks.get(i);
+		drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, BUNDLE_SLOT_BACKGROUND_TEXTURE, x, y, SLOT_DIMENSION, SLOT_DIMENSION);
+		drawContext.drawItem(itemStack, x + 4, y + 4, seed);
+		drawContext.drawStackOverlay(textRenderer, itemStack, x + 4, y + 4);
+	}
+
+	private static void drawExtraItemsCount(int x, int y, int numExtra, TextRenderer textRenderer, DrawContext drawContext) {
+		drawContext.drawCenteredTextWithShadow(textRenderer, "+" + numExtra, x + 12, y + 10, -1);
+	}
+
+	private void drawProgressBar(int x, int y, TextRenderer textRenderer, DrawContext drawContext) {
+		drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, this.getProgressBarFillTexture(), x + 1, y, this.getProgressBarFill(), PROGRESS_BAR_HEIGHT);
+		drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, BUNDLE_PROGRESS_BAR_BORDER_TEXTURE, x, y, ROW_WIDTH, PROGRESS_BAR_HEIGHT);
+		Text text = this.getProgressBarLabel();
+		if (text != null) {
+			drawContext.drawCenteredTextWithShadow(textRenderer, text, x + 48, y + 3, -1);
+		}
+	}
+
+	private void drawEmptyDescription(int x, int y, TextRenderer textRenderer, DrawContext drawContext) {
+		drawContext.drawWrappedTextWithShadow(textRenderer, this.emptyDescription, x, y, ROW_WIDTH, -5592406);
+	}
+
+	private int getDescriptionHeight(TextRenderer textRenderer) {
+		return textRenderer.wrapLines(this.emptyDescription, ROW_WIDTH).size() * 9;
+	}
+
+	private int getProgressBarFill() {
+		return MathHelper.clamp(MathHelper.multiplyFraction(this.customBundleContents.getOccupancy(), PROGRESS_BAR_WIDTH), 0, PROGRESS_BAR_WIDTH);
+	}
+
+	private Identifier getProgressBarFillTexture() {
+		return this.customBundleContents.getOccupancy().compareTo(Fraction.ONE) >= 0 ? BUNDLE_PROGRESS_BAR_FULL_TEXTURE : BUNDLE_PROGRESS_BAR_FILL_TEXTURE;
+	}
+
+	@Nullable
+	private Text getProgressBarLabel() {
+		if (this.customBundleContents.isEmpty()) {
+			return BUNDLE_EMPTY;
+		} else {
+			return this.customBundleContents.getOccupancy().compareTo(Fraction.ONE) >= 0 ? BUNDLE_FULL : null;
 		}
 	}
 }

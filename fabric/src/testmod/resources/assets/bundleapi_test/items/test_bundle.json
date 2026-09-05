@@ -1,0 +1,28 @@
+{
+  "model": {
+    "type": "minecraft:range_dispatch",
+    "property": "bundleapi:custom_bundle/fullness",
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/bundle"
+    },
+    "entries": [
+      {
+        "threshold": 0.01,
+        "model": {
+          "type": "minecraft:composite",
+          "models": [
+            {
+              "type": "minecraft:model",
+              "model": "minecraft:item/bundle_open_back"
+            },
+            {
+              "type": "minecraft:model",
+              "model": "minecraft:item/bundle_open_front"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

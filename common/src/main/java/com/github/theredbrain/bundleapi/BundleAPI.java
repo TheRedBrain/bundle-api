@@ -6,7 +6,7 @@ import net.minecraft.component.ComponentType;
 import net.minecraft.item.ItemStack;
 import net.minecraft.loot.ContainerComponentModifier;
 import net.minecraft.loot.ContainerComponentModifiers;
-import net.minecraft.predicate.item.ItemSubPredicate;
+import net.minecraft.predicate.component.ComponentPredicate;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +18,7 @@ public class BundleAPI {
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
 	public static ComponentType<CustomBundleContentsComponent> CUSTOM_BUNDLE_CONTENTS_COMPONENT = ComponentType.<CustomBundleContentsComponent>builder().codec(CustomBundleContentsComponent.CODEC).packetCodec(CustomBundleContentsComponent.PACKET_CODEC).cache().build();
-	public static ItemSubPredicate.Type<CustomBundleContentsPredicate> CUSTOM_BUNDLE_CONTENTS_ITEM_SUB_PREDICATE = new ItemSubPredicate.Type<>(CustomBundleContentsPredicate.CODEC);
+	public static ComponentPredicate.Type<CustomBundleContentsPredicate> CUSTOM_BUNDLE_CONTENTS_ITEM_SUB_PREDICATE = new ComponentPredicate.OfValue<>(CustomBundleContentsPredicate.CODEC);
 	public static ContainerComponentModifier<CustomBundleContentsComponent> CUSTOM_BUNDLE_CONTENTS_CONTAINER_COMPONENT_MODIFIER;
 
 	public static void init() {
@@ -32,15 +32,18 @@ public class BundleAPI {
 				return CUSTOM_BUNDLE_CONTENTS_COMPONENT;
 			}
 
+			@Override
 			public CustomBundleContentsComponent getDefault() {
 				return CustomBundleContentsComponent.DEFAULT;
 			}
 
+			@Override
 			public Stream<ItemStack> stream(CustomBundleContentsComponent customBundleContentsComponent) {
 				return customBundleContentsComponent.stream();
 			}
 
-			public CustomBundleContentsComponent create(CustomBundleContentsComponent customBundleContentsComponent, Stream<ItemStack> stream) {
+			@Override
+			public CustomBundleContentsComponent apply(CustomBundleContentsComponent customBundleContentsComponent, Stream<ItemStack> stream) {
 				CustomBundleContentsComponent.Builder builder = new CustomBundleContentsComponent.Builder(customBundleContentsComponent).clear();
 				stream.forEach(builder::add);
 				return builder.build();

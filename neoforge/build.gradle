@@ -54,7 +54,12 @@ processResources {
     inputs.property 'version', project.version
 
     filesMatching('META-INF/neoforge.mods.toml') {
-        expand(project.properties)
+        // NeoForge does not accept maven version strings with a '+' build suffix.
+        def cleanedProps = project.properties.collectEntries { k, v ->
+            def s = v?.toString()
+            [(k.toString()): (s?.contains('+') ? s.substring(0, s.indexOf('+')) : s)]
+        }
+        expand(cleanedProps)
     }
 }
 
