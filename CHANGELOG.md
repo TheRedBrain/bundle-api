@@ -1,12 +1,14 @@
-# 1.1.1
+# 3.0.0
 
-- Fix a class-initialisation cycle that could deadlock under parallel registry loading (NeoForge).
-- Minecraft 26.1.2 support (Java 25).
-- Bundle contents are now stored as `ItemStackTemplate`, mirroring vanilla `BundleContents`.
-- `Content.items()` returns `List<ItemStackTemplate>`; use `stream()` / `iterateCopy()` for stacks, `iterate()` is deprecated.
-- Tooltip subclasses override `extractImage` (with `GuiGraphicsExtractor`) instead of `renderImage`.
-- Bundles can supply a custom empty-state tooltip description.
+Thanks Daedelus for the PR!
+
+- updated to Minecraft 26.1.x
+
+## Additions
+
+- Custom Bundles can supply a custom empty-state tooltip description.
 - Removed the leftover bundle fullness tooltip line.
+
 # 2.0.0
 
 - updated to Minecraft 1.21.11 (Thanks Daedelus for the PR!)
