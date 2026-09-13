@@ -1,3 +1,9 @@
+# 1.1.0.001
+
+- Minecraft 1.20.1 port (Fabric + Forge 47). Contents are stored in the stack NBT `Items` list (same layout as the vanilla bundle) instead of a data component.
+- `CustomBundleItem` takes the size multiplier as a constructor argument: `new CustomBundleItem(tag, sizeMultiplier, settings)`.
+- Tooltip is rendered by vanilla's `BundleTooltipComponent`; the item-predicate (`custom_bundle_contents`) integration is not available on this line.
+
 # 1.1.0
 
 - migrated to Architectury (Thanks Daedelus!)

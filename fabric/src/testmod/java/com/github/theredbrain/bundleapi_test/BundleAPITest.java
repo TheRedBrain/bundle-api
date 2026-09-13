@@ -1,7 +1,5 @@
 package com.github.theredbrain.bundleapi_test;
 
-import com.github.theredbrain.bundleapi.BundleAPI;
-import com.github.theredbrain.bundleapi.component.type.CustomBundleContentsComponent;
 import com.github.theredbrain.bundleapi.item.CustomBundleItem;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
@@ -39,21 +37,17 @@ public class BundleAPITest implements ModInitializer {
 
 	public static final TagKey<Item> TEST_BUNDLE_TAG = TagKey.of(RegistryKeys.ITEM, identifier("test_bundle_tag"));
 
-	public static Item TEST_BUNDLE = registerItem("test_bundle", new CustomBundleItem(new Item.Settings()
-					.maxCount(1)
-					.component(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.builder().size_multiplier(2).build())
-			),
+	// Capacity = 2 stacks of any nestable item.
+	public static Item TEST_BUNDLE = registerItem("test_bundle", new CustomBundleItem(null, 2, new Item.Settings().maxCount(1)),
 			ItemGroups.OPERATOR
 	);
 
-	public static Item TEST_QUIVER = registerItem("test_quiver", new CustomBundleItem(TEST_BUNDLE_TAG, new Item.Settings()
-					.maxCount(1)
-					.component(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.builder().size_multiplier(3).build())
-			),
+	// Capacity = 3 stacks, arrows only (see data/bundleapi_test/tags/items/test_bundle_tag.json).
+	public static Item TEST_QUIVER = registerItem("test_quiver", new CustomBundleItem(TEST_BUNDLE_TAG, 3, new Item.Settings().maxCount(1)),
 			ItemGroups.OPERATOR
 	);
 
 	public static Identifier identifier(String path) {
-		return Identifier.of(MOD_ID, path);
+		return new Identifier(MOD_ID, path);
 	}
 }
