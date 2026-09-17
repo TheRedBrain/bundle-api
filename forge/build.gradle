@@ -50,11 +50,7 @@ processResources {
 
 shadowJar {
     configurations = [project.configurations.shadowBundle]
-    archiveClassifier = 'dev-shadow'
-}
-
-remapJar {
-    inputFile.set shadowJar.archiveFile
+    archiveClassifier = null
 }
 
 assemble.dependsOn shadowJar
