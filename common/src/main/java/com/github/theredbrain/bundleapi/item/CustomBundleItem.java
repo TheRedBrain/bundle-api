@@ -17,6 +17,7 @@ import net.minecraft.stats.Stats;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
+import net.minecraft.util.Prediction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -170,7 +171,7 @@ public class CustomBundleItem extends Item {
 		if (customBundleContentsComponent != null && !customBundleContentsComponent.isEmpty()) {
 			stack.set(BundleAPI.CUSTOM_BUNDLE_CONTENTS_COMPONENT, new CustomBundleContentsComponent.Builder(customBundleContentsComponent).clear().build());
 			if (player instanceof ServerPlayer) {
-				customBundleContentsComponent.stream().forEach(stackx -> player.drop(stackx, true));
+				customBundleContentsComponent.stream().forEach(stackx -> player.drop(stackx, true, Prediction.PREDICTED));
 			}
 
 			return true;

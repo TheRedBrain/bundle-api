@@ -5,11 +5,9 @@ import com.github.theredbrain.bundleapi.predicate.item.CustomBundleContentsPredi
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.stream.Stream;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.predicates.DataComponentPredicate;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.ContainerComponentManipulator;
 import net.minecraft.world.level.storage.loot.ContainerComponentManipulators;
 
@@ -66,29 +64,9 @@ public class BundleAPI {
 	}
 
 	static {
-		CUSTOM_BUNDLE_CONTENTS_CONTAINER_COMPONENT_MODIFIER = new ContainerComponentManipulator<CustomBundleContentsComponent>() {
-			@Override
-			public DataComponentType<CustomBundleContentsComponent> type() {
-				return CUSTOM_BUNDLE_CONTENTS_COMPONENT;
-			}
-
-			@Override
-			public CustomBundleContentsComponent empty() {
-				return CustomBundleContentsComponent.DEFAULT;
-			}
-
-			@Override
-			public Stream<ItemStack> getContents(CustomBundleContentsComponent customBundleContentsComponent) {
-				return customBundleContentsComponent.stream();
-			}
-
-			@Override
-			public CustomBundleContentsComponent setContents(CustomBundleContentsComponent customBundleContentsComponent, Stream<ItemStack> stream) {
-				CustomBundleContentsComponent.Builder builder = new CustomBundleContentsComponent.Builder(customBundleContentsComponent).clear();
-				stream.forEach(builder::add);
-				return builder.build();
-			}
-		};
+		// 26.3: the manipulator is a record over a ContainerComponent; reading and rebuilding the contents moved into
+		// CustomBundleContentsComponent#itemCopies / #copyWithContents / #asMutable.
+		CUSTOM_BUNDLE_CONTENTS_CONTAINER_COMPONENT_MODIFIER = new ContainerComponentManipulator<>(CUSTOM_BUNDLE_CONTENTS_COMPONENT, CustomBundleContentsComponent.DEFAULT);
 		// NOTE: the ALL_MANIPULATORS registration deliberately does NOT happen here - see
 		// registerContainerComponentManipulator(). This static block is reached from DataComponents.<clinit> and must not
 		// initialise ContainerComponentManipulators.
