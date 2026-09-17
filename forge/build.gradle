@@ -89,7 +89,7 @@ publishMods {
             : me.modmuss50.mpp.ReleaseType.BETA
     version = "${project.version}-${platform}"   // per-loader suffix → unique Modrinth version
     displayName = "${project.version}"
-    modLoaders.add("fabric")
+    modLoaders.add("forge")
 
     curseforge {
         projectId = providers.environmentVariable("CURSEFORGE_PROJECT_ID")   // numeric id
