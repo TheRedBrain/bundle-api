@@ -14,7 +14,7 @@ ext.minecraftCompatVersions = rootProject.minecraft_compat_versions.split(':').c
 
 allprojects {
     group = rootProject.maven_group
-    version = rootProject.mod_version
+    version = rootProject.mod_version + "+" + rootProject.minecraft_version
     ext.minecraft_min_version = rootProject.minecraftCompatVersions.first()
 }
 

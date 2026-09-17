@@ -1,4 +1,4 @@
-package com.github.theredbrain.bundleapi_test;
+package com.github.theredbrain.bundleapi_test.client;
 
 import net.fabricmc.api.ClientModInitializer;
 
