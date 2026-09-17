@@ -8,9 +8,14 @@ architectury {
     minecraft = project.minecraft_version
 }
 
+// Game versions this build is published for, oldest first (colon separated in gradle.properties).
+// The first entry is the manifest minimum, the whole list feeds the CurseForge/Modrinth tags.
+ext.minecraftCompatVersions = rootProject.minecraft_compat_versions.split(':').collect { it.trim() }.findAll { it }
+
 allprojects {
     group = rootProject.maven_group
     version = rootProject.mod_version
+    ext.minecraft_min_version = rootProject.minecraftCompatVersions.first()
 }
 
 subprojects {
