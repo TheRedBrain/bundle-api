@@ -62,6 +62,7 @@ processResources {
 }
 
 shadowJar {
+    dependsOn remapJar
     configurations = [project.configurations.shadowBundle]
     archiveClassifier = null
 }
