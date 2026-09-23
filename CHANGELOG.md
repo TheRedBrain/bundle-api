@@ -1,3 +1,9 @@
+# 4.0.0
+
+Thanks Daedelus for the PR!
+
+- updated to Minecraft 26.2
+
 # 3.0.0
 
 Thanks Daedelus for the PR!
