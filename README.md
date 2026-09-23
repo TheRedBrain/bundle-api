@@ -29,7 +29,7 @@ gradle.properties
 
 ```
 # replace with latest version
-bundle_api_version=3.0.0
+bundle_api_version=5.0.0
 ```
 
 ## Usage
