@@ -3,7 +3,6 @@
 Thanks Daedelus for the PR!
 
 - updated to Minecraft 26.3
-- `CustomBundleContentsComponent` implements the new vanilla `ContainerComponent` (and its `Builder` is a `GrowableMutableContainer`), so 26.3's writable `contents` slot sources and container-component manipulators work on custom bundles; `copyWithContents` keeps the bundle's `size_multiplier`
 
 # 4.0.0
 
