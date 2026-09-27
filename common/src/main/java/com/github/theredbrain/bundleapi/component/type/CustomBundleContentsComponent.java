@@ -10,19 +10,25 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemInstance;
+import net.minecraft.world.item.ItemProvider;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.component.Bees;
 import net.minecraft.world.item.component.BundleContents;
+import net.minecraft.world.item.component.ContainerComponent;
+import net.minecraft.world.item.component.GrowableMutableContainer;
+import net.minecraft.world.item.slot.SlotSelector;
 import net.minecraft.world.level.block.entity.BeehiveBlockEntity;
 
 /**
@@ -35,7 +41,7 @@ import net.minecraft.world.level.block.entity.BeehiveBlockEntity;
  * @param occupancy       the fraction of the bundle that is used, in {@code [0, 1]}
  * @param size_multiplier capacity multiplier relative to a vanilla bundle
  */
-public record CustomBundleContentsComponent(Content content, Fraction occupancy/*, Optional<RegistryEntryList<Item>> tag  TODO add tag key in 1.21.4*/, int size_multiplier) implements TooltipComponent {
+public record CustomBundleContentsComponent(Content content, Fraction occupancy/*, Optional<RegistryEntryList<Item>> tag  TODO add tag key in 1.21.4*/, int size_multiplier) implements ContainerComponent<CustomBundleContentsComponent>, TooltipComponent {
 	public static final CustomBundleContentsComponent DEFAULT = new CustomBundleContentsComponent(Content.DEFAULT, Fraction.ZERO/*, Optional.empty()*/, 1);
 	public static final Codec<CustomBundleContentsComponent> CODEC = RecordCodecBuilder.create(
 			instance -> instance.group(
@@ -134,10 +140,18 @@ public record CustomBundleContentsComponent(Content content, Fraction occupancy/
 	}
 
 	/**
-	 * Fresh stacks created from the templates. Mirrors {@link BundleContents#itemCopyStream()}.
+	 * Fresh stacks created from the templates. Mirrors {@link BundleContents#itemCopies()}.
+	 */
+	@Override
+	public Stream<ItemStack> itemCopies() {
+		return this.content.items.stream().map(ItemStackTemplate::create);
+	}
+
+	/**
+	 * Same as {@link #itemCopies()}, the name used before 26.3.
 	 */
 	public Stream<ItemStack> stream() {
-		return this.content.items.stream().map(ItemStackTemplate::create);
+		return this.itemCopies();
 	}
 
 	/**
@@ -153,8 +167,28 @@ public record CustomBundleContentsComponent(Content content, Fraction occupancy/
 		return this.stream().toList();
 	}
 
+	@Override
 	public int size() {
 		return this.content.items.size();
+	}
+
+	/**
+	 * Mirrors {@link BundleContents#copyWithContents}, but keeps this component's {@code size_multiplier} (as the
+	 * pre-26.3 container component manipulator did).
+	 */
+	@Override
+	public CustomBundleContentsComponent copyWithContents(Stream<ItemStack> newContents) {
+		CustomBundleContentsComponent.Builder builder = new CustomBundleContentsComponent.Builder(this).clear();
+		newContents.forEach(builder::add);
+		return builder.build();
+	}
+
+	/**
+	 * Mirrors {@link BundleContents#asMutable()}.
+	 */
+	@Override
+	public CustomBundleContentsComponent.Builder asMutable() {
+		return new CustomBundleContentsComponent.Builder(this);
 	}
 
 	public int sizeMultiplier() {
@@ -171,16 +205,19 @@ public record CustomBundleContentsComponent(Content content, Fraction occupancy/
 
 	/**
 	 * Mirrors {@link BundleContents.Mutable}: works on mutable {@link ItemStack}s and converts back to templates in
-	 * {@link #build()}.
+	 * {@link #build()}. Since 26.3 it is also the component's {@link ContainerComponent.Mutable} (slot sources,
+	 * {@code set_contents} / {@code modify_contents}), like vanilla's.
 	 */
-	public static class Builder {
+	public static class Builder extends GrowableMutableContainer<CustomBundleContentsComponent> {
 		private final List<ItemStack> stacks;
 		private Fraction occupancy;
 		//		private Optional<RegistryEntryList<Item>> tag;
 		private int size_multiplier;
+		private boolean needsFlattening;
 
 		public Builder(CustomBundleContentsComponent base) {
-			this.stacks = new ArrayList<>(base.content.items.size());
+			super(new ArrayList<>(base.content.items.size()));
+			this.stacks = this.items;
 			for (ItemStackTemplate item : base.content.items) {
 				this.stacks.add(item.create());
 			}
@@ -196,10 +233,17 @@ public record CustomBundleContentsComponent(Content content, Fraction occupancy/
 		}
 
 		private int addInternal(ItemStack stack) {
+			return this.addInternalWithinRange(stack, 0, this.stacks.size());
+		}
+
+		private int addInternalWithinRange(ItemStack stack, int minInclusive, int maxExclusive) {
 			if (!stack.isStackable()) {
 				return -1;
 			} else {
-				for (int i = 0; i < this.stacks.size(); i++) {
+				int startIndex = Math.max(minInclusive, 0);
+				int endIndex = Math.min(maxExclusive, this.stacks.size());
+
+				for (int i = startIndex; i < endIndex; i++) {
 					if (ItemStack.isSameItemSameComponents(this.stacks.get(i), stack) && this.stacks.get(i).getCount() < this.stacks.get(i).getMaxStackSize()) {
 						return i;
 					}
@@ -291,7 +335,114 @@ public record CustomBundleContentsComponent(Content content, Fraction occupancy/
 //			return this;
 //		}
 
+		private static Fraction getStackedOccupancy(Fraction itemOccupancy, int count) {
+			return itemOccupancy.multiplyBy(Fraction.getFraction(count, 1));
+		}
+
+		private Fraction getStackedOccupancy(ItemStack stack) {
+			return getStackedOccupancy(CustomBundleContentsComponent.getOccupancy(stack, this.size_multiplier).getOrThrow(), stack.getCount());
+		}
+
+		@Override
+		public int replaceSlotItems(ItemProvider newItems, SlotSelector slotSelector) {
+			this.mergeIdenticalStacks();
+			return super.replaceSlotItems(newItems, slotSelector);
+		}
+
+		@Override
+		public void modifySlots(Consumer<? super SlotAccess> consumer, SlotSelector slotSelector) {
+			this.mergeIdenticalStacks();
+			super.modifySlots(consumer, slotSelector);
+		}
+
+		@Override
+		protected boolean setItem(int slot, ItemStack itemStack) {
+			ItemStack currentItem = this.stacks.get(slot);
+			Fraction adjustedOccupancy = currentItem.isEmpty() ? this.occupancy : this.occupancy.subtract(this.getStackedOccupancy(currentItem));
+			Fraction newOccupancy = itemStack.isEmpty() ? adjustedOccupancy : this.getOccupancyWithAddedItems(adjustedOccupancy, itemStack);
+			if (newOccupancy != null && super.setItem(slot, itemStack)) {
+				this.occupancy = newOccupancy;
+				this.needsFlattening = true;
+				return true;
+			} else {
+				return false;
+			}
+		}
+
+		@Override
+		protected boolean addSlotWithItem(ItemProvider newItems) {
+			if (!newItems.findNextNonEmpty()) {
+				return false;
+			} else {
+				Fraction newOccupancy = this.getOccupancyWithAddedItems(this.occupancy, newItems.peek());
+				if (newOccupancy != null && super.addSlotWithItem(newItems)) {
+					this.occupancy = newOccupancy;
+					this.needsFlattening = true;
+					return true;
+				} else {
+					return false;
+				}
+			}
+		}
+
+		private @Nullable Fraction getOccupancyWithAddedItems(Fraction occupancy, ItemStack stack) {
+			if (!stack.isEmpty() && stack.getItem().canFitInsideContainerItems()) {
+				DataResult<Fraction> itemOccupancy = CustomBundleContentsComponent.getOccupancy(stack, this.size_multiplier);
+				if (itemOccupancy.isError()) {
+					return null;
+				}
+
+				Fraction newOccupancy = occupancy.add(getStackedOccupancy(itemOccupancy.getOrThrow(), stack.getCount()));
+				if (newOccupancy.compareTo(Fraction.ONE) <= 0) {
+					return newOccupancy;
+				}
+			}
+
+			return null;
+		}
+
+		@Override
+		public boolean canInsertNewSlots() {
+			return this.occupancy.compareTo(Fraction.ONE) < 0;
+		}
+
+		/**
+		 * Mirrors {@code BundleContents.Mutable#mergeIdenticalStacks}; like {@link #add(ItemStack)} and unlike vanilla it
+		 * never grows a stack past its max stack size.
+		 */
+		private void mergeIdenticalStacks() {
+			if (this.needsFlattening) {
+				for (int index = 0; index < this.stacks.size(); index++) {
+					ItemStack itemStack = this.stacks.get(index);
+					if (itemStack.isEmpty()) {
+						this.stacks.remove(index--);
+					} else {
+						int stackIndex = this.addInternalWithinRange(itemStack, index + 1, this.stacks.size());
+						if (stackIndex != -1) {
+							ItemStack targetStack = this.stacks.get(stackIndex);
+							int moved = Math.min(itemStack.getCount(), targetStack.getMaxStackSize() - targetStack.getCount());
+							this.stacks.set(stackIndex, targetStack.copyWithCount(targetStack.getCount() + moved));
+							if (moved >= itemStack.getCount()) {
+								this.stacks.remove(index);
+							} else {
+								this.stacks.set(index, itemStack.copyWithCount(itemStack.getCount() - moved));
+							}
+							index--;
+						}
+					}
+				}
+
+				this.needsFlattening = false;
+			}
+		}
+
+		@Override
+		public CustomBundleContentsComponent toImmutable() {
+			return this.build();
+		}
+
 		public CustomBundleContentsComponent build() {
+			this.mergeIdenticalStacks();
 			ImmutableList.Builder<ItemStackTemplate> builder = ImmutableList.builder();
 			for (ItemStack stack : this.stacks) {
 				if (!stack.isEmpty()) {
