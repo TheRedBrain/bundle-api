@@ -13,7 +13,7 @@
       "com.github.theredbrain.bundleapi_test.BundleAPITest"
     ],
     "client": [
-      "com.github.theredbrain.bundleapi_test.BundleAPITestClient"
+      "com.github.theredbrain.bundleapi_test.client.BundleAPITestClient"
     ]
   },
   "mixins": [],
